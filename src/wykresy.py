@@ -15,9 +15,6 @@ from src import config, dane  # noqa: E402
 KOLOR_EMP = "tab:blue"
 KOLOR_TEOR = "tab:orange"
 
-plt.rcParams.update({"font.size": 13, "axes.labelsize": 13,
-                     "xtick.labelsize": 12, "ytick.labelsize": 12})
-
 
 # --- pomocnicze --------------------------------------------------------------
 
@@ -124,7 +121,7 @@ def e2_przebiegi():
     p = wczytaj_podsumowanie()["E2"]
     h_1, h_opt, h_max = p["H"]
 
-    fig, ax = plt.subplots(figsize=(10, 5))
+    fig, ax = plt.subplots(figsize=(12, 6))
     ax.scatter(d["k"], d["theta"], color="gray", alpha=0.35, s=12, label=r"pomiary $\theta_k$")
     ax.plot(d["k"], d["theta_gw"], "--", color="black", linewidth=2,
             label=r"prawdziwy parametr $\theta^*_k$")
@@ -136,7 +133,7 @@ def e2_przebiegi():
             label=rf"$\hat{{\theta}}_k$, $H = {h_max}$ (nadfiltracja)")
     ax.set_xlim(d["k"][0], d["k"][-1])
     _osie(ax, "Chwila k", "Wartość parametru")
-    ax.legend(loc="upper left", fontsize=11)
+    ax.legend(loc="upper left", fontsize=9)
     zapisz(fig, "E2_przebiegi")
 
 
@@ -147,7 +144,7 @@ def _panele_e3(z_teoria):
     tab = wczytaj_csv("E3_imse_tabela")
     H = d["H"]
 
-    fig, osie = plt.subplots(2, 2, figsize=(10, 6.5))
+    fig, osie = plt.subplots(2, 2, figsize=(12, 8))
     for ax, i in zip(osie.flat, range(len(tab["wariant"]))):
         nazwa = tab["wariant"][i]
         emp, teor = d[f"{nazwa}_imse_emp"], d[f"{nazwa}_imse_teor"]
@@ -165,10 +162,10 @@ def _panele_e3(z_teoria):
             tekst = _opis_minimum(h_e, imse_e)
         gora = max(emp.max(), teor.max())
         ax.set_xlim(0, H[-1] + 1)
-        ax.set_ylim(0, 1.7 * gora)
-        _adnotacja(ax, h_e, imse_e, tekst, (0.25, 0.42), fontsize=10)
+        ax.set_ylim(0, 1.45 * gora)
+        _adnotacja(ax, h_e, imse_e, tekst, (0.3, 0.55), fontsize=9)
         _osie(ax, "Horyzont H", "IMSE")
-        ax.legend(loc="upper right", fontsize=9, title_fontsize=10,
+        ax.legend(loc="upper right", fontsize=8, title_fontsize=9,
                   title=rf"{nazwa}: $\alpha$ = {liczba(tab['alfa'][i])}, "
                         rf"$v$ = {liczba(tab['v'][i])}")
     return fig
@@ -189,7 +186,7 @@ def e4_dekompozycja():
     p = wczytaj_podsumowanie()["E4"]
     H = d["H"]
 
-    fig, ax = plt.subplots(figsize=(8, 4.8))
+    fig, ax = plt.subplots(figsize=(10, 6))
     ax.plot(H, d["bias2_teor"], "-.", color="tab:red", linewidth=2,
             label=r"$\mathrm{bias}^2(H) = \alpha^2 (H-1)^2 / 4$")
     ax.plot(H, d["var_teor"], "--", color="tab:green", linewidth=2,
@@ -202,12 +199,12 @@ def e4_dekompozycja():
     ax.plot(h_x, y_x, "s", color="black", markersize=7,
             label=rf"$\mathrm{{bias}}^2 = \mathrm{{Var}}$, $H \approx {liczba(h_x, 1, mat=True)}$")
     _adnotacja(ax, p["H_opt_teor"], p["IMSE_min_teor"],
-               _opis_minimum(p["H_opt_teor"], p["IMSE_min_teor"]), (0.45, 0.55), fontsize=11)
+               _opis_minimum(p["H_opt_teor"], p["IMSE_min_teor"]), (0.45, 0.55), fontsize=10)
 
     ax.set_xlim(1, config.H_MAX)
     ax.set_ylim(0, 4 * p["IMSE_min_teor"])
     _osie(ax, "Horyzont H", "Wartość składowej")
-    ax.legend(loc="upper right", fontsize=11)
+    ax.legend(loc="upper right", fontsize=10)
     zapisz(fig, "E4_dekompozycja")
 
 
