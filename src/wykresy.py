@@ -69,8 +69,10 @@ def wczytaj_podsumowanie():
 
 def zapisz(fig, nazwa):
     config.KATALOG_WYKRESOW.mkdir(parents=True, exist_ok=True)
-    for rozszerzenie in ("png", "pdf"):
-        fig.savefig(config.KATALOG_WYKRESOW / f"{nazwa}.{rozszerzenie}", bbox_inches="tight")
+    # bez daty utworzenia w PDF, żeby kolejne uruchomienia dawały identyczne pliki
+    fig.savefig(config.KATALOG_WYKRESOW / f"{nazwa}.png", bbox_inches="tight")
+    fig.savefig(config.KATALOG_WYKRESOW / f"{nazwa}.pdf", bbox_inches="tight",
+                metadata={"CreationDate": None})
     plt.close(fig)
 
 
