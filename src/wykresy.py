@@ -229,7 +229,7 @@ def e4_dekompozycja():
 
     h_x = p["H_przeciecia_teor"]
     y_x = p["v"] / h_x
-    ax.plot(h_x, y_x, "s", color="black", markersize=7,
+    ax.plot(h_x, y_x, "x", color="black", markersize=9, markeredgewidth=2,
             label=rf"Przecięcie składowych: $H \approx {liczba(h_x, 1, mat=True)}$")
     ax.plot(p["H_opt_teor"], p["IMSE_min_teor"], "o", color="tab:red", markeredgecolor="white", markersize=8, zorder=5)
     _adnotacja(ax, p["H_opt_teor"], p["IMSE_min_teor"],
