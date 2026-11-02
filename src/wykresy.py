@@ -154,20 +154,22 @@ def _panele_e3(z_teoria):
         ax.plot(H, emp, color=KOLOR_EMP, linewidth=1.8, label="IMSE empiryczne")
         if z_teoria:
             ax.plot(H, teor, "--", color=KOLOR_TEOR, linewidth=1.6, label="IMSE teoretyczne")
-            _minima(ax, h_e, imse_e, h_t, imse_t)
-            tekst = (_opis_minimum(h_e, imse_e, "emp.: ") + "\n"
-                     + _opis_minimum(h_t, imse_t, "teor.: "))
+            ax.plot(h_e, imse_e, "o", color="red", markersize=6, label="minimum empiryczne")
+            ax.plot(h_t, imse_t, "x", color="green", markersize=8, markeredgewidth=2,
+                    label="minimum teoretyczne")
+            tekst = (rf"emp.: $H_{{opt}}$ = {h_e}, IMSE$_{{min}}$ = {liczba(imse_e, 4)}" + "\n"
+                     + rf"teor.: $H_{{opt}}$ = {h_t}, IMSE$_{{min}}$ = {liczba(imse_t, 4)}")
         else:
-            ax.plot(h_e, imse_e, "o", color="red", markersize=8, label="minimum empiryczne")
-            tekst = _opis_minimum(h_e, imse_e)
-        gora = max(emp.max(), teor.max())
+            ax.plot(h_e, imse_e, "o", color="red", markersize=6, label="minimum empiryczne")
+            tekst = rf"$H_{{opt}}$ = {h_e}, IMSE$_{{min}}$ = {liczba(imse_e, 4)}"
+        ax.annotate(tekst, xy=(h_e, imse_e), xytext=(0.14, 0.40), textcoords="axes fraction",
+                    fontsize=8.5, arrowprops={"arrowstyle": "->", "color": "red", "lw": 1})
+        ax.set_title(rf"{nazwa}: $\alpha$ = {liczba(tab['alfa'][i])}, "
+                     rf"$v$ = {liczba(tab['v'][i])}", fontsize=12)
         ax.set_xlim(0, H[-1] + 1)
-        ax.set_ylim(0, 1.45 * gora)
-        _adnotacja(ax, h_e, imse_e, tekst, (0.3, 0.55), fontsize=9)
         _osie(ax, "Horyzont H", "IMSE")
-        ax.legend(loc="upper right", fontsize=8, title_fontsize=9,
-                  title=rf"{nazwa}: $\alpha$ = {liczba(tab['alfa'][i])}, "
-                        rf"$v$ = {liczba(tab['v'][i])}")
+        ax.legend(loc="upper center", fontsize=8)
+    fig.tight_layout()
     return fig
 
 
