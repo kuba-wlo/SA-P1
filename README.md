@@ -1,49 +1,91 @@
-# Estymacja parametru zmiennego liniowo: estymator z oknem przesuwnym
+# Estymacja parametru zmiennego liniowo za pomocą okna przesuwnego
 
-Projekt z przedmiotu *Sterowanie adaptacyjne* (projekt 1, grupa C).
+Projekt nr 1 z przedmiotu *Sterowanie adaptacyjne*, grupa C.
 
-## Zadanie
+Program bada, jak szerokość okna $H$ wpływa na błąd estymacji parametru, który zmienia się liniowo
+i jest mierzony z zakłóceniem o rozkładzie trójkątnym. Wyniki symulacji Monte Carlo są porównywane
+z zależnościami teoretycznymi.
 
-Prawdziwy parametr zmienia się liniowo, a pomiary są zakłócone szumem o symetrycznym
-rozkładzie trójkątnym:
+## Model
 
-```
-θ*_k = θ_0 + α·k
-θ_k  = θ*_k + z_k,     E[z_k] = 0,  Var[z_k] = v,  k = 0, ..., N-1
-z_k  = sqrt(v)·sqrt(6)·(U1 + U2 - 1),   U1, U2 ~ U[0, 1)
-```
+Prawdziwy parametr i jego pomiar, dla $k = 0, 1, \dots, N-1$:
 
-Parametr jest estymowany średnią z okna przesuwnego o szerokości `H`:
+$$
+\theta_k^* = \theta_0 + \alpha k, \qquad \theta_k = \theta_k^* + z_k
+$$
 
-```
-θ̂_k(H) = (1/H) · Σ_{i=0}^{H-1} θ_{k-i}
-```
+Zakłócenia $z_k$ są niezależne, a ich rozkład jest trójkątny i symetryczny:
 
-Dla trendu liniowego `bias(H) = -α(H-1)/2`, `Var(H) = v/H`, więc
+$$
+\mathbb{E}[z_k] = 0, \qquad \mathrm{Var}[z_k] = v, \qquad
+f(z) = \frac{a - |z|}{a^2} \quad \text{dla } |z| \le a, \qquad a = \sqrt{6v}
+$$
 
-```
-IMSE(H) = α²(H-1)²/4 + v/H,      H_opt ≈ (2v/α²)^(1/3)
-```
+Program generuje je z sumy dwóch rozkładów jednostajnych $U_1, U_2 \sim \mathcal{U}[0, 1)$:
 
-Duże okno tłumi szum, ale estymata opóźnia się względem trendu. Optymalne `H` jest
-kompromisem między tymi efektami. Program porównuje `IMSE(H)` wyznaczone metodą Monte Carlo
-z wartościami teoretycznymi. Bada też rozrzut `H_opt` wyznaczonego z jednej realizacji
-i zależność `H_opt` od `α` oraz `v`.
+$$
+z_k = \sqrt{v} \cdot \sqrt{6} \cdot (U_1 + U_2 - 1)
+$$
 
-Parametry symulacji: `θ_0 = 1`, `N = 2000`, `M = 200` realizacji, `H = 1, ..., 100`,
-ziarno `2026`. Wszystkie znajdują się w [src/config.py](src/config.py).
+Estymata to średnia z ostatnich $H$ pomiarów:
 
-| Wariant | α | v |
-|---|---|---|
-| W1 | 0,01 | 0,5 |
-| W2 | 0,01 | 10 |
-| W3 | 0,1 | 0,5 |
-| W4 | 0,1 | 10 |
-| W0 | 0 | 10 |
+$$
+\hat{\theta}_k(H) = \frac{1}{H} \sum_{i=0}^{H-1} \theta_{k-i}, \qquad k \ge H - 1
+$$
+
+## Zależności teoretyczne
+
+Duże okno tłumi szum, ale estymata opóźnia się względem trendu. Optymalne $H$ jest kompromisem
+między tymi efektami:
+
+$$
+\mathrm{bias}(H) = -\frac{\alpha (H-1)}{2}, \qquad \mathrm{Var}(H) = \frac{v}{H}
+$$
+
+$$
+\mathrm{IMSE}(H) = \frac{\alpha^2 (H-1)^2}{4} + \frac{v}{H}, \qquad
+H_{\mathrm{opt}} \approx \left( \frac{2v}{\alpha^2} \right)^{1/3}
+$$
+
+Dokładne $H_{\mathrm{opt}}$ program wyznacza jako minimum $\mathrm{IMSE}(H)$ po całkowitych $H$.
+Dla stałego parametru ($\alpha = 0$) obciążenie znika, a dla $H = N$ wariancja wynosi $v/N$
+i dąży do zera, gdy $N \to \infty$.
+
+Empiryczne $\mathrm{IMSE}$ jest liczone dla $M$ realizacji, na tym samym zbiorze chwil $k$ dla każdego $H$:
+
+$$
+\widehat{\mathrm{IMSE}}(H) = \frac{1}{M} \sum_{m=1}^{M} \frac{1}{N - H_{\max} + 1}
+\sum_{k=H_{\max}-1}^{N-1} \left( \hat{\theta}_k^{(m)}(H) - \theta_k^* \right)^2
+$$
+
+## Parametry
+
+| Parametr | Symbol | Wartość |
+|:---|:---:|:---:|
+| Wartość początkowa | $\theta_0$ | $1$ |
+| Liczba próbek | $N$ | $2000$ |
+| Liczba realizacji | $M$ | $200$ |
+| Szerokość okna | $H$ | $1, 2, \dots, 100$ |
+| Największe okno | $H_{\max}$ | $100$ |
+| Ziarno generatora | | $2026$ |
+
+Wszystkie parametry znajdują się w [src/config.py](src/config.py).
+
+## Wyniki główne
+
+| Wariant | $\alpha$ | $v$ | $H_{\mathrm{opt}}$ teor. | $H_{\mathrm{opt}}$ emp. | $\mathrm{IMSE}_{\min}$ teor. | $\mathrm{IMSE}_{\min}$ emp. |
+|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
+| W1 | $0{,}01$ | $0{,}5$ | $22$ | $22$ | $0{,}0338$ | $0{,}0340$ |
+| W2 | $0{,}01$ | $10$ | $59$ | $59$ | $0{,}2536$ | $0{,}2565$ |
+| W3 | $0{,}1$ | $0{,}5$ | $5$ | $5$ | $0{,}1400$ | $0{,}1403$ |
+| W4 | $0{,}1$ | $10$ | $13$ | $13$ | $1{,}1292$ | $1{,}1196$ |
+
+Dodatkowo badany jest wariant W0 ze stałym parametrem: $\alpha = 0$, $v = 10$.
+Pełne wyniki, tabele i wykresy znajdują się w [results/](results/).
 
 ## Instalacja
 
-Wymagany Python ≥ 3.11.
+Wymagany Python 3.11 lub nowszy.
 
 ```
 python -m venv .venv
@@ -55,12 +97,12 @@ pip install -r requirements.txt
 ## Uruchomienie
 
 ```
-python -m src.run_all     # wszystkie obliczenia i wykresy (ok. 1 min)
+python -m src.run_all     # obliczenia, tabele i wykresy
 python -m pytest          # testy
 ```
 
-Wyniki są powtarzalne. Każdy eksperyment dostaje własny strumień liczb losowych
-z `numpy.random.SeedSequence(2026).spawn(...)`, więc kolejne uruchomienia dają identyczne pliki.
+Wyniki są powtarzalne, bo każdy eksperyment dostaje własny strumień liczb losowych
+z `numpy.random.SeedSequence(2026).spawn(...)`.
 
 ## Struktura
 
@@ -75,19 +117,5 @@ src/
   wykresy.py       wykresy na podstawie zapisanych tabel
   run_all.py       uruchomienie całości
 tests/             testy pytest
-results/           wyniki (tabele CSV, wykresy PNG 300 dpi i PDF, podsumowanie.json)
+results/           tabele CSV, wykresy PNG i PDF, podsumowanie.json
 ```
-
-## Wyniki
-
-| Wykres (`results/figures/`) | Tabele (`results/tables/`) | Zawartość |
-|---|---|---|
-| `E1_generator` | `E1_generator`, `E1_histogram` | histogram zakłóceń (10⁶ próbek, `v = 10`) na tle gęstości trójkątnej |
-| `E2_przebiegi` | `E2_przebiegi` | W4, jedna realizacja: pomiary, `θ*_k` i estymaty dla `H = 1`, `H_opt`, `100` |
-| `E3_imse_warianty` | `E3_imse_tabela`, `E3_imse_krzywe` | `IMSE(H)` empiryczne i teoretyczne dla W1–W4, minima i płaskość minimum |
-| `E4_dekompozycja` | `E4_dekompozycja` | W2: `bias²`, `Var` i `IMSE` oraz punkt `bias² = Var` |
-| `E5_realizacja`, `E5_histogram_hopt` | `E5_realizacja`, `E5_hopt_realizacji`, `E5_statystyki_hopt` | W4, `N = 500`: `IMSE(H)` jednej realizacji i rozkład `H_opt` z 500 realizacji |
-| `E6_staly_parametr`, `E6_wariancja_N` | `E6_staly_parametr`, `E6_wariancja_N` | W0 (`α = 0`): `IMSE = v/H`, wariancja estymaty dla `H = N` wobec `v/N` |
-| `E7_wrazliwosc` | `E7_wrazliwosc_alfa`, `E7_wrazliwosc_v`, `E7_nachylenia` | `H_opt` w funkcji `α` i `v` (log-log), nachylenia wobec `-2/3` i `1/3` |
-
-Najważniejsze liczby ze wszystkich eksperymentów zebrano w `results/podsumowanie.json`.
