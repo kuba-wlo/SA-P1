@@ -45,6 +45,35 @@ def _osie(ax, opis_x, opis_y):
     _przecinek(ax)
 
 
+def _legenda(ax, **kwargs):
+    """Legenda w prawym górnym rogu; jeśli zasłania dane, podnosi górną granicę osi Y."""
+    legenda = ax.legend(loc="upper right", fontsize=9, title_fontsize=9, framealpha=0.9,
+                        **kwargs)
+    ax.figure.canvas.draw()
+    do_osi = ax.transAxes.inverted()
+    ramka = legenda.get_window_extent().transformed(do_osi)
+
+    # punkty danych (linie i wykresy punktowe) we współrzędnych osi; pionowe linie pomocnicze
+    # mają inną transformację, więc są pomijane
+    punkty = [l.get_xydata() for l in ax.get_lines() if l.get_transform() == ax.transData]
+    punkty += [k.get_offsets() for k in ax.collections if len(k.get_offsets())]
+    if not punkty:
+        return
+    xy = np.concatenate([np.asarray(p, dtype=float) for p in punkty])
+    xy = xy[np.all(np.isfinite(xy), axis=1)]
+    frac = do_osi.transform(ax.transData.transform(xy))
+    pod_legenda = (frac[:, 0] >= ramka.x0 - 0.02) & (frac[:, 0] <= 1.0)
+    granica = ramka.y0 - 0.03
+    if not pod_legenda.any() or frac[pod_legenda, 1].max() <= granica:
+        return
+
+    skala = ax.yaxis.get_transform()
+    dol, gora = skala.transform(np.array(ax.get_ylim()))
+    szczyt = dol + frac[pod_legenda, 1].max() * (gora - dol)
+    nowa_gora = dol + (szczyt - dol) / granica
+    ax.set_ylim(top=skala.inverted().transform(np.array([nowa_gora]))[0])
+
+
 def _adnotacja(ax, x, y, tekst, polozenie, **kwargs):
     """Opis w ramce ze strzałką do punktu (x, y); `polozenie` we współrzędnych osi."""
     ax.annotate(tekst, xy=(x, y), xytext=polozenie, textcoords="axes fraction",
@@ -110,7 +139,7 @@ def e1_generator():
                label=rf"$\pm a = \pm\sqrt{{6v}} \approx {{\pm}}{liczba(a, 2, mat=True)}$")
     ax.set_ylim(0, 1.3 / a)
     _osie(ax, r"Wartość zakłócenia $z_k$", "Gęstość prawdopodobieństwa")
-    ax.legend(loc="upper right", fontsize=9)
+    _legenda(ax)
     zapisz(fig, "E1_generator")
 
 
@@ -133,7 +162,7 @@ def e2_przebiegi():
             label=rf"$\hat{{\theta}}_k$, $H = {h_max}$ (nadfiltracja)")
     ax.set_xlim(d["k"][0], d["k"][-1])
     _osie(ax, "Chwila k", "Wartość parametru")
-    ax.legend(loc="upper left", fontsize=9)
+    _legenda(ax)
     zapisz(fig, "E2_przebiegi")
 
 
@@ -168,7 +197,7 @@ def _panele_e3(z_teoria):
                      rf"$v$ = {liczba(tab['v'][i])}", fontsize=12)
         ax.set_xlim(0, H[-1] + 1)
         _osie(ax, "Horyzont H", "IMSE")
-        ax.legend(loc="upper center", fontsize=8)
+        _legenda(ax)
     fig.tight_layout()
     return fig
 
@@ -206,7 +235,7 @@ def e4_dekompozycja():
     ax.set_xlim(1, config.H_MAX)
     ax.set_ylim(0, 4 * p["IMSE_min_teor"])
     _osie(ax, "Horyzont H", "Wartość składowej")
-    ax.legend(loc="upper right", fontsize=10)
+    _legenda(ax)
     zapisz(fig, "E4_dekompozycja")
 
 
@@ -230,7 +259,7 @@ def e5_realizacja():
     ax.set_xlim(0, H[-1] + 1)
     ax.set_ylim(0, 1.3 * d["imse_teor"].max())
     _osie(ax, "Horyzont H", "IMSE")
-    ax.legend(loc="upper left", fontsize=9)
+    _legenda(ax)
     zapisz(fig, "E5_realizacja")
 
 
@@ -254,7 +283,7 @@ def e5_histogram_hopt():
     ax.set_xticks(np.arange(h.min(), h.max() + 1))
     ax.set_ylim(0, 1.3 * np.bincount(h).max())
     _osie(ax, r"Horyzont $H_{opt}$", "Liczba realizacji")
-    ax.legend(loc="upper right", fontsize=9)
+    _legenda(ax)
     zapisz(fig, "E5_histogram_hopt")
 
 
@@ -279,7 +308,7 @@ def e6_staly_parametr():
     ax.set_xlim(0, H[-1] + 1)
     ax.set_ylim(0, 1.05 * d["imse_emp"].max())
     _osie(ax, "Horyzont H", "IMSE")
-    ax.legend(loc="upper right", fontsize=9)
+    _legenda(ax)
     zapisz(fig, "E6_staly_parametr")
 
 
@@ -297,7 +326,7 @@ def e6_wariancja_N():
     ax.set_xscale("log")
     ax.set_yscale("log")
     _osie(ax, "Liczba próbek N", r"$\mathrm{Var}[\hat{\theta}_{N-1}(N)]$")
-    ax.legend(loc="upper right", fontsize=9)
+    _legenda(ax)
     zapisz(fig, "E6_wariancja_N")
 
 
@@ -307,10 +336,10 @@ def e7_wrazliwosc():
     p = wczytaj_podsumowanie()["E7"]
     fig, osie = plt.subplots(1, 2, figsize=(12, 5.5))
     opisy = {
-        "alfa": (r"$\alpha$", rf"$v$ = {liczba(config.E7_V_PRZY_ALPHA)}", "-2/3", "upper right"),
-        "v": (r"$v$", rf"$\alpha$ = {liczba(config.E7_ALPHA_PRZY_V)}", "1/3", "upper left"),
+        "alfa": (r"$\alpha$", rf"$v$ = {liczba(config.E7_V_PRZY_ALPHA)}", "-2/3"),
+        "v": (r"$v$", rf"$\alpha$ = {liczba(config.E7_ALPHA_PRZY_V)}", "1/3"),
     }
-    for ax, (seria, (symbol, stala, wykl, legenda)) in zip(osie, opisy.items()):
+    for ax, (seria, (symbol, stala, wykl)) in zip(osie, opisy.items()):
         d = wczytaj_csv(f"E7_wrazliwosc_{seria}")
         w = p[seria]
         x = d[seria]
@@ -332,8 +361,8 @@ def e7_wrazliwosc():
         ax.set_xscale("log")
         ax.set_yscale("log")
         _osie(ax, f"{symbol} (przy {stala})", r"$H_{opt}$")
-        h = np.concatenate([d["H_opt_emp"], d["H_opt_teor"]])
+        _legenda(ax)
+        dol, gora = ax.get_ylim()
         podzialka = np.array([3, 4, 5, 6, 8, 10, 15, 20, 30, 40, 60, 80, 100])
-        ax.set_yticks(podzialka[(podzialka >= 0.9 * h.min()) & (podzialka <= 1.1 * h.max())])
-        ax.legend(loc=legenda, fontsize=8)
+        ax.set_yticks(podzialka[(podzialka >= dol) & (podzialka <= gora)])
     zapisz(fig, "E7_wrazliwosc")
