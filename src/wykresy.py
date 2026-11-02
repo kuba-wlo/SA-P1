@@ -89,7 +89,7 @@ def _minima(ax, h_emp, imse_emp, h_teor, imse_teor):
 
 
 def _opis_minimum(h, imse_min, przedrostek=""):
-    return rf"{przedrostek}$H_{{opt}}$ = {h}, IMSE$_{{min}}$ = {liczba(imse_min, 4)}"
+    return rf"{przedrostek}$H_{{\mathrm{{opt}}}}$ = {h}, $\mathrm{{IMSE}}_{{\mathrm{{min}}}}$ = {liczba(imse_min, 4)}"
 
 
 def wczytaj_csv(nazwa):
@@ -157,12 +157,12 @@ def e2_przebiegi():
     ax.plot(d["k"], d[f"est_H{h_1}"], color="tab:orange", linewidth=1.2,
             label=rf"$\hat{{\theta}}_k$, $H = {h_1}$ (niedofiltracja)")
     ax.plot(d["k"], d[f"est_H{h_opt}"], color="tab:green", linewidth=2.2,
-            label=rf"$\hat{{\theta}}_k$, $H = H_{{opt}} = {h_opt}$ (kompromis)")
+            label=rf"$\hat{{\theta}}_k$, $H = H_{{\mathrm{{opt}}}} = {h_opt}$ (kompromis)")
     ax.plot(d["k"], d[f"est_H{h_max}"], color="tab:purple", linewidth=2,
             label=rf"$\hat{{\theta}}_k$, $H = {h_max}$ (nadfiltracja)")
     ax.set_xlim(d["k"][0], d["k"][-1])
-    _osie(ax, "Chwila k", "Wartość parametru")
-    _legenda(ax)
+    _osie(ax, r"Chwila $k$", "Wartość parametru")
+    ax.legend(loc="upper left", fontsize=9, framealpha=0.9)
     zapisz(fig, "E2_przebiegi")
 
 
@@ -186,17 +186,17 @@ def _panele_e3(z_teoria):
             ax.plot(h_e, imse_e, "o", color="red", markersize=6, label="minimum empiryczne")
             ax.plot(h_t, imse_t, "x", color="green", markersize=8, markeredgewidth=2,
                     label="minimum teoretyczne")
-            tekst = (rf"emp.: $H_{{opt}}$ = {h_e}, IMSE$_{{min}}$ = {liczba(imse_e, 4)}" + "\n"
-                     + rf"teor.: $H_{{opt}}$ = {h_t}, IMSE$_{{min}}$ = {liczba(imse_t, 4)}")
+            tekst = (rf"emp.: $H_{{\mathrm{{opt}}}}$ = {h_e}, $\mathrm{{IMSE}}_{{\mathrm{{min}}}}$ = {liczba(imse_e, 4)}" + "\n"
+                     + rf"teor.: $H_{{\mathrm{{opt}}}}$ = {h_t}, $\mathrm{{IMSE}}_{{\mathrm{{min}}}}$ = {liczba(imse_t, 4)}")
         else:
             ax.plot(h_e, imse_e, "o", color="red", markersize=6, label="minimum empiryczne")
-            tekst = rf"$H_{{opt}}$ = {h_e}, IMSE$_{{min}}$ = {liczba(imse_e, 4)}"
+            tekst = rf"$H_{{\mathrm{{opt}}}}$ = {h_e}, $\mathrm{{IMSE}}_{{\mathrm{{min}}}}$ = {liczba(imse_e, 4)}"
         ax.annotate(tekst, xy=(h_e, imse_e), xytext=(0.14, 0.40), textcoords="axes fraction",
                     fontsize=8.5, arrowprops={"arrowstyle": "->", "color": "red", "lw": 1})
         ax.set_title(rf"{nazwa}: $\alpha$ = {liczba(tab['alfa'][i])}, "
                      rf"$v$ = {liczba(tab['v'][i])}", fontsize=12)
         ax.set_xlim(0, H[-1] + 1)
-        _osie(ax, "Horyzont H", "IMSE")
+        _osie(ax, r"Horyzont $H$", "IMSE")
         _legenda(ax)
     fig.tight_layout()
     return fig
@@ -229,12 +229,13 @@ def e4_dekompozycja():
     y_x = p["v"] / h_x
     ax.plot(h_x, y_x, "s", color="black", markersize=7,
             label=rf"$\mathrm{{bias}}^2 = \mathrm{{Var}}$, $H \approx {liczba(h_x, 1, mat=True)}$")
+    ax.plot(p["H_opt_teor"], p["IMSE_min_teor"], "o", color="tab:blue", markersize=7)
     _adnotacja(ax, p["H_opt_teor"], p["IMSE_min_teor"],
                _opis_minimum(p["H_opt_teor"], p["IMSE_min_teor"]), (0.45, 0.55), fontsize=10)
 
     ax.set_xlim(1, config.H_MAX)
     ax.set_ylim(0, 4 * p["IMSE_min_teor"])
-    _osie(ax, "Horyzont H", "Wartość składowej")
+    _osie(ax, r"Horyzont $H$", "Wartość składowej")
     _legenda(ax)
     zapisz(fig, "E4_dekompozycja")
 
@@ -258,7 +259,7 @@ def e5_realizacja():
                + _opis_minimum(h_t, imse_t, "teoria: "), (0.25, 0.55), fontsize=10)
     ax.set_xlim(0, H[-1] + 1)
     ax.set_ylim(0, 1.3 * d["imse_teor"].max())
-    _osie(ax, "Horyzont H", "IMSE")
+    _osie(ax, r"Horyzont $H$", "IMSE")
     _legenda(ax)
     zapisz(fig, "E5_realizacja")
 
@@ -275,14 +276,14 @@ def e5_histogram_hopt():
                label=f"percentyle 5–95: [{liczba(s['percentyl_5'])}; "
                      f"{liczba(s['percentyl_95'])}]")
     ax.hist(h, bins=krawedzie, color=KOLOR_EMP, alpha=0.7, edgecolor="black",
-            label=rf"$H_{{opt}}$ z {p['realizacje']} realizacji")
+            label=rf"$H_{{\mathrm{{opt}}}}$ z {p['realizacje']} realizacji")
     ax.axvline(p["H_opt_teor"], color="green", linestyle="--", linewidth=2,
-               label=rf"$H_{{opt}}$ teoretyczne: {p['H_opt_teor']}")
+               label=rf"$H_{{\mathrm{{opt}}}}$ teoretyczne: {p['H_opt_teor']}")
     ax.axvline(s["srednia"], color="red", linestyle=":", linewidth=2,
                label=f"średnia: {liczba(s['srednia'], 2)}, mediana: {liczba(s['mediana'])}")
     ax.set_xticks(np.arange(h.min(), h.max() + 1))
     ax.set_ylim(0, 1.3 * np.bincount(h).max())
-    _osie(ax, r"Horyzont $H_{opt}$", "Liczba realizacji")
+    _osie(ax, r"Horyzont $H_{\mathrm{opt}}$", "Liczba realizacji")
     _legenda(ax)
     zapisz(fig, "E5_histogram_hopt")
 
@@ -303,11 +304,11 @@ def e6_staly_parametr():
     _minima(ax, h_e, imse_e, p["H_opt_teor"], d["imse_teor"][-1])
     _adnotacja(ax, h_e, imse_e,
                _opis_minimum(h_e, imse_e, "emp.: ") + "\n"
-               + _opis_minimum(p["H_opt_teor"], d["imse_teor"][-1], r"teor. ($H_{max}$): "),
+               + _opis_minimum(p["H_opt_teor"], d["imse_teor"][-1], r"teor. ($H_{\mathrm{max}}$): "),
                (0.45, 0.35), fontsize=10)
     ax.set_xlim(0, H[-1] + 1)
     ax.set_ylim(0, 1.05 * d["imse_emp"].max())
-    _osie(ax, "Horyzont H", "IMSE")
+    _osie(ax, r"Horyzont $H$", "IMSE")
     _legenda(ax)
     zapisz(fig, "E6_staly_parametr")
 
@@ -354,13 +355,13 @@ def e7_wrazliwosc():
                 linewidth=1.4,
                 label=f"MNK (emp.), nachylenie {liczba(w['nachylenie_emp'], 3)}")
         ax.plot(x, d["H_opt_emp"], "o", color="red", markersize=8,
-                label=r"$H_{opt}$ empiryczne")
+                label=r"$H_{\mathrm{opt}}$ empiryczne")
         ax.plot(x, d["H_opt_teor"], "x", color="green", markersize=10, markeredgewidth=2,
-                label=rf"$H_{{opt}}$ teoretyczne, nachylenie "
+                label=rf"$H_{{\mathrm{{opt}}}}$ teoretyczne, nachylenie "
                       f"{liczba(w['nachylenie_teor_calkowite'], 3)}")
         ax.set_xscale("log")
         ax.set_yscale("log")
-        _osie(ax, f"{symbol} (przy {stala})", r"$H_{opt}$")
+        _osie(ax, f"{symbol} (przy {stala})", r"$H_{\mathrm{opt}}$")
         _legenda(ax)
         dol, gora = ax.get_ylim()
         podzialka = np.array([3, 4, 5, 6, 8, 10, 15, 20, 30, 40, 60, 80, 100])
