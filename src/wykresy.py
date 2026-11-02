@@ -41,10 +41,10 @@ def liczba(x, miejsca=None, mat=True):
 
 
 def _przecinek(ax):
-    """Przecinek dziesiętny na osiach; na osiach log zwykłe liczby 1-2-5."""
-    for os_ in (ax.xaxis, ax.yaxis):
+    """Przecinek dziesiętny na osiach; na osiach log zwykłe liczby (x: 1-2-5, y: 1-2-3-5)."""
+    for os_, subs in ((ax.xaxis, (1.0, 2.0, 5.0)), (ax.yaxis, (1.0, 2.0, 3.0, 5.0))):
         if os_.get_scale() == "log":
-            os_.set_major_locator(LogLocator(subs=(1.0, 2.0, 5.0)))
+            os_.set_major_locator(LogLocator(subs=subs))
             os_.set_minor_formatter(NullFormatter())
         os_.set_major_formatter(FuncFormatter(lambda x, _: liczba(x, mat=False)))
 
@@ -221,3 +221,150 @@ def e4_dekompozycja():
     ax.legend(loc="upper center", bbox_to_anchor=(0.5, 1.3), ncol=3, handlelength=2.2)
     _przecinek(ax)
     zapisz(fig, "E4_dekompozycja")
+
+
+# --- E5 ----------------------------------------------------------------------
+
+def e5_realizacja():
+    d = wczytaj_csv("E5_realizacja")
+    p = wczytaj_podsumowanie()["E5"]
+    H = d["H"]
+
+    fig, ax = plt.subplots(figsize=(SZEROKOSC, 3.4))
+    ax.plot(H, d["imse_jednej_realizacji"], linestyle="none", marker="o", markersize=3,
+            markerfacecolor="none", markeredgecolor=KOLOR["niebieski"],
+            label="IMSE$(H)$ jednej realizacji")
+    ax.plot(H, d["imse_teor"], color=KOLOR["czarny"], linestyle="--",
+            label="IMSE$(H)$ teoretyczne")
+    ax.plot(p["H_opt_jednej_realizacji"], p["IMSE_min_jednej_realizacji"], linestyle="none",
+            marker="o", markersize=9, markerfacecolor="none",
+            markeredgecolor=KOLOR["pomaranczowy"], markeredgewidth=1.6,
+            label=rf"minimum jednej realizacji, $H={p['H_opt_jednej_realizacji']}$")
+    ax.plot(p["H_opt_teor"], p["IMSE_min_teor"], linestyle="none", marker="x", markersize=8,
+            color=KOLOR["czarny"], markeredgewidth=1.6,
+            label=rf"minimum teoretyczne, $H_{{opt}}={p['H_opt_teor']}$")
+    ax.set_yscale("log")
+    ax.set_xlim(0, H[-1] + 1)
+    ax.set_xlabel(r"$H$")
+    ax.set_ylabel(r"IMSE$(H)$")
+    ax.legend(loc="lower right")
+    _przecinek(ax)
+    zapisz(fig, "E5_realizacja")
+
+
+def e5_histogram_hopt():
+    d = wczytaj_csv("E5_hopt_realizacji")
+    p = wczytaj_podsumowanie()["E5"]
+    s = p["statystyki_H_opt"]
+    h = d["H_opt"].astype(int)
+    krawedzie = np.arange(h.min() - 0.5, h.max() + 1.5)
+
+    fig, ax = plt.subplots(figsize=(SZEROKOSC, 3.2))
+    ax.hist(h, bins=krawedzie, color=KOLOR["niebieski"], alpha=0.45,
+            edgecolor=KOLOR["niebieski"], linewidth=0.8,
+            label=rf"$H_{{opt}}$ z {p['realizacje']} realizacji ($N={p['N']}$)")
+    ax.axvline(p["H_opt_teor"], color=KOLOR["czarny"], linestyle="--",
+               label=rf"$H_{{opt}}$ teoretyczne: {p['H_opt_teor']}")
+    ax.axvline(s["srednia"], color=KOLOR["pomaranczowy"], linestyle=":", linewidth=1.8,
+               label=f"średnia: {liczba(s['srednia'], 2, mat=False)}")
+    ax.axvspan(s["percentyl_5"], s["percentyl_95"], color=KOLOR["jasny"], alpha=0.25,
+               label=f"percentyle 5–95: [{liczba(s['percentyl_5'], mat=False)}; "
+                     f"{liczba(s['percentyl_95'], mat=False)}]")
+    ax.set_xlabel(r"$H_{opt}$ wyznaczone z jednej realizacji")
+    ax.set_ylabel("liczba realizacji")
+    ax.set_xticks(np.arange(h.min(), h.max() + 1))
+    ax.legend(loc="upper right")
+    _przecinek(ax)
+    zapisz(fig, "E5_histogram_hopt")
+
+
+# --- E6 ----------------------------------------------------------------------
+
+def e6_staly_parametr():
+    d = wczytaj_csv("E6_staly_parametr")
+    p = wczytaj_podsumowanie()["E6"]
+    H = d["H"]
+
+    fig, ax = plt.subplots(figsize=(SZEROKOSC, 3.4))
+    ax.plot(H, d["imse_emp"], linestyle="none", marker="o", markersize=3.5,
+            markerfacecolor="none", markeredgecolor=KOLOR["niebieski"],
+            label="IMSE$(H)$ empiryczne")
+    ax.plot(H, d["imse_teor"], color=KOLOR["czarny"], linestyle="--",
+            label=rf"$v/H$, $v={liczba(p['v'])}$")
+    ax.plot(p["H_opt_emp"], d["imse_emp"][H == p["H_opt_emp"]][0], linestyle="none",
+            marker="o", markersize=9, markerfacecolor="none",
+            markeredgecolor=KOLOR["pomaranczowy"], markeredgewidth=1.6,
+            label=rf"minimum empiryczne, $H={p['H_opt_emp']}$")
+    ax.plot(p["H_opt_teor"], d["imse_teor"][-1], linestyle="none", marker="x", markersize=8,
+            color=KOLOR["czarny"], markeredgewidth=1.6,
+            label=rf"$H_{{opt}}=H_{{max}}={p['H_opt_teor']}$")
+    ax.set_xscale("log")
+    ax.set_yscale("log")
+    ax.set_xlabel(r"$H$")
+    ax.set_ylabel(r"IMSE$(H)$")
+    ax.legend(loc="upper right")
+    _przecinek(ax)
+    zapisz(fig, "E6_staly_parametr")
+
+
+def e6_wariancja_N():
+    d = wczytaj_csv("E6_wariancja_N")
+    p = wczytaj_podsumowanie()["E6"]
+    N_gesto = np.geomspace(d["N"][0] * 0.8, d["N"][-1] * 1.25, 100)
+
+    fig, ax = plt.subplots(figsize=(SZEROKOSC, 3.4))
+    ax.plot(N_gesto, p["v"] / N_gesto, color=KOLOR["czarny"], linestyle="--",
+            label=rf"$v/N$, $v={liczba(p['v'])}$")
+    ax.plot(d["N"], d["var_emp"], linestyle="none", marker="o", markersize=6,
+            markerfacecolor="none", markeredgecolor=KOLOR["niebieski"], markeredgewidth=1.4,
+            label=rf"wariancja empiryczna ($M={p['M_b']}$), "
+                  rf"nachylenie ${liczba(p['nachylenie_log_var_od_log_N'], 3)}$")
+    ax.set_xscale("log")
+    ax.set_yscale("log")
+    ax.set_xlabel(r"$N$ ($H=N$)")
+    ax.set_ylabel(r"$\mathrm{Var}[\hat{\theta}_{N-1}(N)]$")
+    ax.legend(loc="upper right")
+    _przecinek(ax)
+    zapisz(fig, "E6_wariancja_N")
+
+
+# --- E7 ----------------------------------------------------------------------
+
+def e7_wrazliwosc():
+    p = wczytaj_podsumowanie()["E7"]
+    fig, osie = plt.subplots(1, 2, figsize=(SZEROKOSC, 3.3))
+    opisy = {
+        "alfa": (r"$\alpha$", rf"$v={liczba(2.0)}$", "-2/3"),
+        "v": (r"$v$", rf"$\alpha={liczba(0.05)}$", "1/3"),
+    }
+    for ax, (seria, (os_x, stala, wykl)) in zip(osie, opisy.items()):
+        d = wczytaj_csv(f"E7_wrazliwosc_{seria}")
+        w = p[seria]
+        x = d[seria]
+        x_gesto = np.geomspace(x.min() * 0.85, x.max() * 1.15, 100)
+        alpha = d["alfa"][0] if seria == "v" else x_gesto
+        v = d["v"][0] if seria == "alfa" else x_gesto
+        ax.plot(x_gesto, (2 * v / alpha**2) ** (1 / 3), color=KOLOR["szary"], linestyle=":",
+                linewidth=1.3, label=rf"$(2v/\alpha^2)^{{1/3}}$, nachyl. ${wykl}$")
+        wsp = np.polyfit(np.log(x), np.log(d["H_opt_emp"]), 1)
+        ax.plot(x_gesto, np.exp(np.polyval(wsp, np.log(x_gesto))), color=KOLOR["niebieski"],
+                linewidth=1.1,
+                label=rf"MNK (emp.), nachyl. ${liczba(w['nachylenie_emp'], 3)}$")
+        ax.plot(x, d["H_opt_emp"], linestyle="none", marker="o", markersize=6,
+                markerfacecolor="none", markeredgecolor=KOLOR["niebieski"],
+                markeredgewidth=1.4, label=r"$H_{opt}$ empiryczne")
+        ax.plot(x, d["H_opt_teor"], linestyle="none", marker="x", markersize=6,
+                color=KOLOR["czarny"], markeredgewidth=1.3,
+                label=rf"$H_{{opt}}$ teor. (całk.), nachyl. "
+                      rf"${liczba(w['nachylenie_teor_calkowite'], 3)}$")
+        ax.set_xscale("log")
+        ax.set_yscale("log")
+        ax.set_xlabel(f"{os_x} (przy {stala})")
+        ax.legend(loc="upper center", bbox_to_anchor=(0.5, -0.2), ncol=1)
+        _przecinek(ax)
+        h = np.concatenate([d["H_opt_emp"], d["H_opt_teor"]])
+        podzialka = np.array([3, 4, 5, 6, 8, 10, 15, 20, 30, 40, 60, 80, 100])
+        ax.set_yticks(podzialka[(podzialka >= 0.9 * h.min()) & (podzialka <= 1.1 * h.max())])
+    osie[0].set_ylabel(r"$H_{opt}$")
+    fig.tight_layout()
+    zapisz(fig, "E7_wrazliwosc")

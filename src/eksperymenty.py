@@ -164,3 +164,129 @@ def e4_dekompozycja():
     }
     zapisz_podsumowanie("E4", wynik)
     return wynik
+
+
+# --- E5: pojedyncza realizacja wobec uśrednienia (W4, N = 500) ---------------
+
+def e5_realizacja():
+    nazwa = config.E5_WARIANT
+    alpha, v = config.WARIANTY[nazwa]
+    H = np.asarray(config.H_VALUES)
+    theta_gw, theta = dane.pomiary(dane.generator("E5"), config.THETA_0, alpha, v,
+                                   config.E5_N, M=config.E5_REALIZACJE)
+    per = imse.imse_realizacji(theta, theta_gw, H, config.H_MAX)
+    h_opt_real = H[np.argmin(per, axis=1)]
+    teor = teoria.imse(H, alpha, v)
+    h_t, imse_t = teoria.h_opt(alpha, v, config.H_MAX)
+
+    zapisz_csv("E5_realizacja", {"H": H, "imse_jednej_realizacji": per[0],
+                                 "imse_srednie": per.mean(axis=0), "imse_teor": teor})
+    zapisz_csv("E5_hopt_realizacji", {"realizacja": np.arange(len(h_opt_real)),
+                                      "H_opt": h_opt_real})
+    stat = {
+        "srednia": h_opt_real.mean(), "mediana": np.median(h_opt_real),
+        "percentyl_5": np.percentile(h_opt_real, 5),
+        "percentyl_95": np.percentile(h_opt_real, 95),
+        "min": int(h_opt_real.min()), "max": int(h_opt_real.max()),
+        "odch_std": h_opt_real.std(ddof=1),
+    }
+    zapisz_csv("E5_statystyki_hopt", {k: [w] for k, w in stat.items()})
+
+    wynik = {"wariant": nazwa, "alpha": alpha, "v": v, "N": config.E5_N,
+             "realizacje": config.E5_REALIZACJE, "H_opt_teor": h_t, "IMSE_min_teor": imse_t,
+             "H_opt_jednej_realizacji": int(h_opt_real[0]),
+             "IMSE_min_jednej_realizacji": per[0].min(),
+             "H_opt_sredniego_IMSE": int(H[np.argmin(per.mean(axis=0))]),
+             "statystyki_H_opt": stat}
+    zapisz_podsumowanie("E5", wynik)
+    return wynik
+
+
+# --- E6: stały parametr (W0) -------------------------------------------------
+
+def e6_staly_parametr():
+    alpha, v = config.WARIANT_STALY["W0"]
+    H = np.asarray(config.H_VALUES)
+
+    # (a) IMSE(H) wobec v/H
+    w = imse.imse_mc(dane.generator("E6", 0), config.THETA_0, alpha, v)
+    teor = teoria.imse(H, alpha, v)
+    zapisz_csv("E6_staly_parametr", {"H": H, "imse_emp": w["imse"], "imse_teor": teor,
+                                     "bias2_emp": w["bias2"], "var_emp": w["var"]})
+
+    # (b) wariancja estymaty dla H = N (średnia ze wszystkich N pomiarów)
+    blok = 250
+    war_emp = []
+    for i, N in enumerate(config.E6_N_LISTA, start=1):
+        rng = dane.generator("E6", i)
+        estymaty = []
+        for start in range(0, config.E6_M, blok):
+            m = min(blok, config.E6_M - start)
+            theta_gw, theta = dane.pomiary(rng, config.THETA_0, alpha, v, N, M=m)
+            estymaty.append(estymator.okno_przesuwne(theta, N)[:, -1] - theta_gw[-1])
+        war_emp.append(np.var(np.concatenate(estymaty), ddof=0))
+    N_lista = np.asarray(config.E6_N_LISTA)
+    war_emp = np.asarray(war_emp)
+    war_teor = v / N_lista
+    zapisz_csv("E6_wariancja_N", {"N": N_lista, "var_emp": war_emp, "var_teor": war_teor,
+                                  "stosunek_emp_teor": war_emp / war_teor})
+    nachylenie = np.polyfit(np.log(N_lista), np.log(war_emp), 1)[0]
+
+    wynik = {
+        "alpha": alpha, "v": v,
+        "H_opt_teor": teoria.h_opt(alpha, v, config.H_MAX)[0],
+        "H_opt_emp": int(H[np.argmin(w["imse"])]),
+        "IMSE_H_max_emp": w["imse"][-1], "IMSE_H_max_teor": teor[-1],
+        "max_blad_wzgl_a": np.max(np.abs(w["imse"] - teor) / teor),
+        "max_bias2_emp": np.max(w["bias2"]),
+        "M_b": config.E6_M, "nachylenie_log_var_od_log_N": nachylenie,
+        "max_blad_wzgl_b": np.max(np.abs(war_emp / war_teor - 1)),
+    }
+    zapisz_podsumowanie("E6", wynik)
+    return wynik
+
+
+# --- E7: wrażliwość H_opt na alpha i v ---------------------------------------
+
+def _nachylenie(x, y):
+    return float(np.polyfit(np.log(x), np.log(y), 1)[0])
+
+
+def e7_wrazliwosc():
+    H = np.asarray(config.H_VALUES)
+    serie = {
+        "alfa": [(a, config.E7_V_PRZY_ALPHA) for a in config.E7_ALPHA_LISTA],
+        "v": [(config.E7_ALPHA_PRZY_V, v) for v in config.E7_V_LISTA],
+    }
+    pod = 0
+    wynik = {}
+    for seria, punkty in serie.items():
+        kol = {k: [] for k in ("alfa", "v", "H_opt_teor", "H_opt_przybl", "H_opt_emp",
+                               "IMSE_min_teor", "IMSE_min_emp")}
+        for alpha, v in punkty:
+            w = imse.imse_mc(dane.generator("E7", pod), config.THETA_0, alpha, v)
+            pod += 1
+            h_t, imse_t = teoria.h_opt(alpha, v, config.H_MAX)
+            j = int(np.argmin(w["imse"]))
+            for k, x in zip(kol, (alpha, v, h_t, teoria.h_opt_przyblizenie(alpha, v),
+                                  int(H[j]), imse_t, w["imse"][j])):
+                kol[k].append(x)
+        zapisz_csv(f"E7_wrazliwosc_{seria}", kol)
+
+        x = np.asarray(kol["alfa" if seria == "alfa" else "v"])
+        wynik[seria] = {
+            "nachylenie_emp": _nachylenie(x, kol["H_opt_emp"]),
+            "nachylenie_teor_calkowite": _nachylenie(x, kol["H_opt_teor"]),
+            "nachylenie_przyblizenia": _nachylenie(x, kol["H_opt_przybl"]),
+            "nachylenie_teoretyczne": -2 / 3 if seria == "alfa" else 1 / 3,
+            "punkty": [dict(zip(kol, p)) for p in zip(*kol.values())],
+        }
+
+    zapisz_csv("E7_nachylenia", {
+        "seria": list(wynik),
+        **{k: [wynik[s][k] for s in wynik] for k in (
+            "nachylenie_emp", "nachylenie_teor_calkowite", "nachylenie_przyblizenia",
+            "nachylenie_teoretyczne")},
+    })
+    zapisz_podsumowanie("E7", wynik)
+    return wynik
