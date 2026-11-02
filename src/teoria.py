@@ -31,6 +31,14 @@ def h_opt(alpha, v, h_max):
     return int(H[i]), float(wartosci[i])
 
 
+def h_przeciecia(alpha, v):
+    """Ciągłe H > 1, dla którego bias^2(H) = Var(H): (alpha^2/4)(H-1)^2 H = v."""
+    c = alpha**2 / 4.0
+    pierwiastki = np.roots([c, -2.0 * c, c, -v])
+    rzeczywiste = pierwiastki[np.abs(pierwiastki.imag) < 1e-9].real
+    return float(rzeczywiste[rzeczywiste > 1.0].max())
+
+
 def h_opt_przyblizenie(alpha, v):
     """Przybliżenie ciągłe H_opt ≈ (2v/alpha^2)^(1/3); dla alpha = 0 zwraca inf."""
     if alpha == 0:

@@ -41,6 +41,12 @@ def test_staly_parametr_bez_obciazenia():
     np.testing.assert_allclose(teoria.imse(H, 0.0, 10.0), 10.0 / H)
 
 
+@pytest.mark.parametrize("alpha, v", [(0.01, 10.0), (0.1, 0.5), (0.05, 2.0)])
+def test_punkt_przeciecia(alpha, v):
+    h = teoria.h_przeciecia(alpha, v)
+    assert teoria.bias2(h, alpha) == pytest.approx(teoria.wariancja(h, v), rel=1e-9)
+
+
 def test_przyblizenie_ciagle():
     assert teoria.h_opt_przyblizenie(0.1, 10.0) == pytest.approx(2000 ** (1 / 3))
     assert teoria.h_opt_przyblizenie(0.0, 10.0) == float("inf")

@@ -24,9 +24,11 @@ WARIANT_STALY = {"W0": (0.0, 10.0)}
 # E1: weryfikacja generatora
 E1_V = 10.0
 E1_PROBKI = 10**6
+E1_KOSZE = 80
 
 # E2: przebiegi czasowe
 E2_WARIANT = "W4"
+E2_POCZATEK_WYCINKA = 1000
 E2_DLUGOSC_WYCINKA = 300
 
 # E4: dekompozycja
