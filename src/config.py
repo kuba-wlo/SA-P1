@@ -9,6 +9,9 @@ H_MAX = 100
 H_VALUES = tuple(range(1, H_MAX + 1))
 SEED = 2026
 
+# Numery strumieni SeedSequence(SEED).spawn(...) dla eksperymentów
+STRUMIENIE = {"E1": 0, "E2": 1, "E3": 2, "E4": 3, "E5": 4, "E6": 5, "E7": 6}
+
 # Warianty: nazwa -> (alpha, v)
 WARIANTY = {
     "W1": (0.01, 0.5),

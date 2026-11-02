@@ -2,6 +2,20 @@
 
 import numpy as np
 
+from src import config
+
+
+def generator(eksperyment, pod=None):
+    """Niezależny strumień dla eksperymentu z SeedSequence(SEED).spawn(...).
+
+    `pod` wybiera podstrumień (np. kolejny wariant w ramach eksperymentu).
+    """
+    ss = np.random.SeedSequence(config.SEED).spawn(len(config.STRUMIENIE))
+    ss = ss[config.STRUMIENIE[eksperyment]]
+    if pod is not None:
+        ss = ss.spawn(pod + 1)[pod]
+    return np.random.default_rng(ss)
+
 
 def trend(theta_0, alpha, N):
     """Prawdziwy parametr theta*_k = theta_0 + alpha*k, k = 0, ..., N-1."""
