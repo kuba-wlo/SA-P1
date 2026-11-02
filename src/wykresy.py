@@ -183,14 +183,14 @@ def _panele_e3(z_teoria):
         ax.plot(H, emp, color=KOLOR_EMP, linewidth=1.8, label="MSE empiryczne")
         if z_teoria:
             ax.plot(H, teor, "--", color=KOLOR_TEOR, linewidth=1.6, label="MSE teoretyczne")
-            ax.plot(h_e, imse_e, "o", color=KOLOR_EMP, markersize=7, zorder=5,
+            ax.plot(h_e, imse_e, "o", color="tab:red", markeredgecolor="white", markersize=8, zorder=5,
                     label="minimum empiryczne")
-            ax.plot(h_t, imse_t, "x", color=KOLOR_TEOR, zorder=6, markersize=8, markeredgewidth=2,
+            ax.plot(h_t, imse_t, "x", color="tab:green", zorder=6, markersize=8, markeredgewidth=2,
                     label="minimum teoretyczne")
             tekst = (rf"emp.: $H_{{\mathrm{{opt}}}}$ = {h_e}, $\mathrm{{MSE}}_{{\mathrm{{min}}}}$ = {liczba(imse_e, 4)}" + "\n"
                      + rf"teor.: $H_{{\mathrm{{opt}}}}$ = {h_t}, $\mathrm{{MSE}}_{{\mathrm{{min}}}}$ = {liczba(imse_t, 4)}")
         else:
-            ax.plot(h_e, imse_e, "o", color=KOLOR_EMP, markersize=7, zorder=5,
+            ax.plot(h_e, imse_e, "o", color="black", markersize=7, zorder=5,
                     label="minimum empiryczne")
             tekst = rf"$H_{{\mathrm{{opt}}}}$ = {h_e}, $\mathrm{{MSE}}_{{\mathrm{{min}}}}$ = {liczba(imse_e, 4)}"
         ax.annotate(tekst, xy=(h_e, imse_e), xytext=(0.14, 0.40), textcoords="axes fraction",
@@ -231,7 +231,7 @@ def e4_dekompozycja():
     y_x = p["v"] / h_x
     ax.plot(h_x, y_x, "s", color="black", markersize=7,
             label=rf"Przecięcie składowych: $H \approx {liczba(h_x, 1, mat=True)}$")
-    ax.plot(p["H_opt_teor"], p["IMSE_min_teor"], "o", color="tab:blue", markersize=7)
+    ax.plot(p["H_opt_teor"], p["IMSE_min_teor"], "o", color="tab:red", markeredgecolor="white", markersize=8, zorder=5)
     _adnotacja(ax, p["H_opt_teor"], p["IMSE_min_teor"],
                _opis_minimum(p["H_opt_teor"], p["IMSE_min_teor"]), (0.45, 0.55), fontsize=10)
 
