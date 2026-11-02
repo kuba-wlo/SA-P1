@@ -150,16 +150,16 @@ def e2_przebiegi():
     p = wczytaj_podsumowanie()["E2"]
     h_1, h_opt, h_max = p["H"]
 
-    fig, ax = plt.subplots(figsize=(12, 6))
-    ax.scatter(d["k"], d["theta"], color="gray", alpha=0.35, s=12, label=r"pomiary $\theta_k$")
-    ax.plot(d["k"], d["theta_gw"], "--", color="black", linewidth=2,
-            label=r"prawdziwy parametr $\theta^*_k$")
-    ax.plot(d["k"], d[f"est_H{h_1}"], color="tab:orange", linewidth=1.2,
-            label=rf"$\hat{{\theta}}_k$, $H = {h_1}$ (niedofiltracja)")
-    ax.plot(d["k"], d[f"est_H{h_opt}"], color="tab:green", linewidth=2.2,
-            label=rf"$\hat{{\theta}}_k$, $H = H_{{\mathrm{{opt}}}} = {h_opt}$ (kompromis)")
-    ax.plot(d["k"], d[f"est_H{h_max}"], color="tab:purple", linewidth=2,
-            label=rf"$\hat{{\theta}}_k$, $H = {h_max}$ (nadfiltracja)")
+    fig, ax = plt.subplots(figsize=(12, 7))
+    ax.scatter(d["k"], d["theta"], color="gray", alpha=0.6, s=18, zorder=1, label=r"Pomiary $\theta_k$")
+    ax.plot(d["k"], d["theta_gw"], "--", color="black", linewidth=2, zorder=4,
+            label=r"Prawdziwy parametr $\theta^*_k = \theta_0 + \alpha k$")
+    ax.plot(d["k"], d[f"est_H{h_1}"], color="tab:green", linewidth=1.3, alpha=0.75, zorder=2,
+            label=rf"$\hat{{\theta}}_k$, $H = {h_1}$: dominacja szumu (niedofiltracja)")
+    ax.plot(d["k"], d[f"est_H{h_opt}"], color="tab:blue", linewidth=3, zorder=5,
+            label=rf"$\hat{{\theta}}_k$, $H = H_{{\mathrm{{opt}}}} = {h_opt}$: kompromis")
+    ax.plot(d["k"], d[f"est_H{h_max}"], color="tab:red", linewidth=2.6, zorder=3,
+            label=rf"$\hat{{\theta}}_k$, $H = {h_max}$: dominacja opóźnienia (nadfiltracja)")
     ax.set_xlim(d["k"][0], d["k"][-1])
     _osie(ax, r"Chwila $k$", "Wartość parametru")
     ax.legend(loc="upper left", fontsize=9, framealpha=0.9)
@@ -183,16 +183,18 @@ def _panele_e3(z_teoria):
         ax.plot(H, emp, color=KOLOR_EMP, linewidth=1.8, label="IMSE empiryczne")
         if z_teoria:
             ax.plot(H, teor, "--", color=KOLOR_TEOR, linewidth=1.6, label="IMSE teoretyczne")
-            ax.plot(h_e, imse_e, "o", color="red", markersize=6, label="minimum empiryczne")
-            ax.plot(h_t, imse_t, "x", color="green", markersize=8, markeredgewidth=2,
+            ax.plot(h_e, imse_e, "o", color=KOLOR_EMP, markersize=7, zorder=5,
+                    label="minimum empiryczne")
+            ax.plot(h_t, imse_t, "x", color=KOLOR_TEOR, zorder=6, markersize=8, markeredgewidth=2,
                     label="minimum teoretyczne")
             tekst = (rf"emp.: $H_{{\mathrm{{opt}}}}$ = {h_e}, $\mathrm{{IMSE}}_{{\mathrm{{min}}}}$ = {liczba(imse_e, 4)}" + "\n"
                      + rf"teor.: $H_{{\mathrm{{opt}}}}$ = {h_t}, $\mathrm{{IMSE}}_{{\mathrm{{min}}}}$ = {liczba(imse_t, 4)}")
         else:
-            ax.plot(h_e, imse_e, "o", color="red", markersize=6, label="minimum empiryczne")
+            ax.plot(h_e, imse_e, "o", color=KOLOR_EMP, markersize=7, zorder=5,
+                    label="minimum empiryczne")
             tekst = rf"$H_{{\mathrm{{opt}}}}$ = {h_e}, $\mathrm{{IMSE}}_{{\mathrm{{min}}}}$ = {liczba(imse_e, 4)}"
         ax.annotate(tekst, xy=(h_e, imse_e), xytext=(0.14, 0.40), textcoords="axes fraction",
-                    fontsize=8.5, arrowprops={"arrowstyle": "->", "color": "red", "lw": 1})
+                    fontsize=8.5, arrowprops={"arrowstyle": "->", "color": "black", "lw": 1})
         ax.set_title(rf"{nazwa}: $\alpha$ = {liczba(tab['alfa'][i])}, "
                      rf"$v$ = {liczba(tab['v'][i])}", fontsize=12)
         ax.set_xlim(0, H[-1] + 1)
@@ -219,16 +221,16 @@ def e4_dekompozycja():
 
     fig, ax = plt.subplots(figsize=(10, 6))
     ax.plot(H, d["bias2_teor"], "-.", color="tab:red", linewidth=2,
-            label=r"$\mathrm{bias}^2(H) = \alpha^2 (H-1)^2 / 4$")
+            label=r"Kwadrat obciążenia: $\mathrm{bias}^2(H) = \alpha^2 (H-1)^2 / 4$")
     ax.plot(H, d["var_teor"], "--", color="tab:green", linewidth=2,
-            label=r"$\mathrm{Var}(H) = v / H$")
+            label=r"Wariancja: $\mathrm{Var}(H) = v / H$")
     ax.plot(H, d["imse_teor"], color="tab:blue", linewidth=2.5,
-            label=r"$\mathrm{IMSE}(H) = \mathrm{bias}^2(H) + \mathrm{Var}(H)$")
+            label=r"Całkowity błąd: $\mathrm{IMSE}(H) = \mathrm{bias}^2(H) + \mathrm{Var}(H)$")
 
     h_x = p["H_przeciecia_teor"]
     y_x = p["v"] / h_x
     ax.plot(h_x, y_x, "s", color="black", markersize=7,
-            label=rf"$\mathrm{{bias}}^2 = \mathrm{{Var}}$, $H \approx {liczba(h_x, 1, mat=True)}$")
+            label=rf"Przecięcie składowych: $H \approx {liczba(h_x, 1, mat=True)}$")
     ax.plot(p["H_opt_teor"], p["IMSE_min_teor"], "o", color="tab:blue", markersize=7)
     _adnotacja(ax, p["H_opt_teor"], p["IMSE_min_teor"],
                _opis_minimum(p["H_opt_teor"], p["IMSE_min_teor"]), (0.45, 0.55), fontsize=10)
