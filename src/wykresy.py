@@ -89,7 +89,7 @@ def _minima(ax, h_emp, imse_emp, h_teor, imse_teor):
 
 
 def _opis_minimum(h, imse_min, przedrostek=""):
-    return rf"{przedrostek}$H_{{\mathrm{{opt}}}}$ = {h}, $\mathrm{{IMSE}}_{{\mathrm{{min}}}}$ = {liczba(imse_min, 4)}"
+    return rf"{przedrostek}$H_{{\mathrm{{opt}}}}$ = {h}, $\mathrm{{MSE}}_{{\mathrm{{min}}}}$ = {liczba(imse_min, 4)}"
 
 
 def wczytaj_csv(nazwa):
@@ -180,25 +180,25 @@ def _panele_e3(z_teoria):
         h_e, imse_e = int(tab["H_opt_emp"][i]), tab["IMSE_min_emp"][i]
         h_t, imse_t = int(tab["H_opt_teor"][i]), tab["IMSE_min_teor"][i]
 
-        ax.plot(H, emp, color=KOLOR_EMP, linewidth=1.8, label="IMSE empiryczne")
+        ax.plot(H, emp, color=KOLOR_EMP, linewidth=1.8, label="MSE empiryczne")
         if z_teoria:
-            ax.plot(H, teor, "--", color=KOLOR_TEOR, linewidth=1.6, label="IMSE teoretyczne")
+            ax.plot(H, teor, "--", color=KOLOR_TEOR, linewidth=1.6, label="MSE teoretyczne")
             ax.plot(h_e, imse_e, "o", color=KOLOR_EMP, markersize=7, zorder=5,
                     label="minimum empiryczne")
             ax.plot(h_t, imse_t, "x", color=KOLOR_TEOR, zorder=6, markersize=8, markeredgewidth=2,
                     label="minimum teoretyczne")
-            tekst = (rf"emp.: $H_{{\mathrm{{opt}}}}$ = {h_e}, $\mathrm{{IMSE}}_{{\mathrm{{min}}}}$ = {liczba(imse_e, 4)}" + "\n"
-                     + rf"teor.: $H_{{\mathrm{{opt}}}}$ = {h_t}, $\mathrm{{IMSE}}_{{\mathrm{{min}}}}$ = {liczba(imse_t, 4)}")
+            tekst = (rf"emp.: $H_{{\mathrm{{opt}}}}$ = {h_e}, $\mathrm{{MSE}}_{{\mathrm{{min}}}}$ = {liczba(imse_e, 4)}" + "\n"
+                     + rf"teor.: $H_{{\mathrm{{opt}}}}$ = {h_t}, $\mathrm{{MSE}}_{{\mathrm{{min}}}}$ = {liczba(imse_t, 4)}")
         else:
             ax.plot(h_e, imse_e, "o", color=KOLOR_EMP, markersize=7, zorder=5,
                     label="minimum empiryczne")
-            tekst = rf"$H_{{\mathrm{{opt}}}}$ = {h_e}, $\mathrm{{IMSE}}_{{\mathrm{{min}}}}$ = {liczba(imse_e, 4)}"
+            tekst = rf"$H_{{\mathrm{{opt}}}}$ = {h_e}, $\mathrm{{MSE}}_{{\mathrm{{min}}}}$ = {liczba(imse_e, 4)}"
         ax.annotate(tekst, xy=(h_e, imse_e), xytext=(0.14, 0.40), textcoords="axes fraction",
                     fontsize=8.5, arrowprops={"arrowstyle": "->", "color": "black", "lw": 1})
         ax.set_title(rf"{nazwa}: $\alpha$ = {liczba(tab['alfa'][i])}, "
                      rf"$v$ = {liczba(tab['v'][i])}", fontsize=12)
         ax.set_xlim(0, H[-1] + 1)
-        _osie(ax, r"Horyzont $H$", "IMSE")
+        _osie(ax, r"Horyzont $H$", "MSE")
         _legenda(ax)
     fig.tight_layout()
     return fig
@@ -225,7 +225,7 @@ def e4_dekompozycja():
     ax.plot(H, d["var_teor"], "--", color="tab:green", linewidth=2,
             label=r"Wariancja: $\mathrm{Var}(H) = v / H$")
     ax.plot(H, d["imse_teor"], color="tab:blue", linewidth=2.5,
-            label=r"Całkowity błąd: $\mathrm{IMSE}(H) = \mathrm{bias}^2(H) + \mathrm{Var}(H)$")
+            label=r"Całkowity błąd: $\mathrm{MSE}(H) = \mathrm{bias}^2(H) + \mathrm{Var}(H)$")
 
     h_x = p["H_przeciecia_teor"]
     y_x = p["v"] / h_x
@@ -253,15 +253,15 @@ def e5_realizacja():
 
     fig, ax = plt.subplots(figsize=(10, 6))
     ax.plot(H, d["imse_jednej_realizacji"], "o", color=KOLOR_EMP, markersize=3.5,
-            label="IMSE jednej realizacji")
-    ax.plot(H, d["imse_teor"], "--", color=KOLOR_TEOR, linewidth=1.6, label="IMSE teoretyczne")
+            label="MSE jednej realizacji")
+    ax.plot(H, d["imse_teor"], "--", color=KOLOR_TEOR, linewidth=1.6, label="MSE teoretyczne")
     _minima(ax, h_e, imse_e, h_t, imse_t)
     _adnotacja(ax, h_e, imse_e,
                _opis_minimum(h_e, imse_e, "jedna realizacja: ") + "\n"
                + _opis_minimum(h_t, imse_t, "teoria: "), (0.25, 0.55), fontsize=10)
     ax.set_xlim(0, H[-1] + 1)
     ax.set_ylim(0, 1.3 * d["imse_teor"].max())
-    _osie(ax, r"Horyzont $H$", "IMSE")
+    _osie(ax, r"Horyzont $H$", "MSE")
     _legenda(ax)
     zapisz(fig, "E5_realizacja")
 
@@ -300,9 +300,9 @@ def e6_staly_parametr():
     imse_e = d["imse_emp"][H == h_e][0]
 
     fig, ax = plt.subplots(figsize=(10, 6))
-    ax.plot(H, d["imse_emp"], color=KOLOR_EMP, linewidth=1.8, label="IMSE empiryczne")
+    ax.plot(H, d["imse_emp"], color=KOLOR_EMP, linewidth=1.8, label="MSE empiryczne")
     ax.plot(H, d["imse_teor"], "--", color=KOLOR_TEOR, linewidth=1.6,
-            label=r"IMSE teoretyczne $v/H$")
+            label=r"MSE teoretyczne $v/H$")
     _minima(ax, h_e, imse_e, p["H_opt_teor"], d["imse_teor"][-1])
     _adnotacja(ax, h_e, imse_e,
                _opis_minimum(h_e, imse_e, "emp.: ") + "\n"
@@ -310,7 +310,7 @@ def e6_staly_parametr():
                (0.45, 0.35), fontsize=10)
     ax.set_xlim(0, H[-1] + 1)
     ax.set_ylim(0, 1.05 * d["imse_emp"].max())
-    _osie(ax, r"Horyzont $H$", "IMSE")
+    _osie(ax, r"Horyzont $H$", "MSE")
     _legenda(ax)
     zapisz(fig, "E6_staly_parametr")
 

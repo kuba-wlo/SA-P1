@@ -43,18 +43,18 @@ $$
 $$
 
 $$
-\mathrm{IMSE}(H) = \frac{\alpha^2 (H-1)^2}{4} + \frac{v}{H}, \qquad
+\mathrm{MSE}(H) = \frac{\alpha^2 (H-1)^2}{4} + \frac{v}{H}, \qquad
 H_{\mathrm{opt}} \approx \left( \frac{2v}{\alpha^2} \right)^{1/3}
 $$
 
-Dokładne $H_{\mathrm{opt}}$ program wyznacza jako minimum $\mathrm{IMSE}(H)$ po całkowitych $H$.
+Dokładne $H_{\mathrm{opt}}$ program wyznacza jako minimum $\mathrm{MSE}(H)$ po całkowitych $H$.
 Dla stałego parametru ($\alpha = 0$) obciążenie znika, a dla $H = N$ wariancja wynosi $v/N$
 i dąży do zera, gdy $N \to \infty$.
 
-Empiryczne $\mathrm{IMSE}$ jest liczone dla $M$ realizacji, na tym samym zbiorze chwil $k$ dla każdego $H$:
+Empiryczne $\mathrm{MSE}$ jest liczone dla $M$ realizacji, na tym samym zbiorze chwil $k$ dla każdego $H$:
 
 $$
-\widehat{\mathrm{IMSE}}(H) = \frac{1}{M} \sum_{m=1}^{M} \frac{1}{N - H_{\max} + 1}
+\widehat{\mathrm{MSE}}(H) = \frac{1}{M} \sum_{m=1}^{M} \frac{1}{N - H_{\max} + 1}
 \sum_{k=H_{\max}-1}^{N-1} \left( \hat{\theta}_k^{(m)}(H) - \theta_k^* \right)^2
 $$
 
@@ -73,7 +73,7 @@ Wszystkie parametry znajdują się w [src/config.py](src/config.py).
 
 ## Wyniki główne
 
-| Wariant | $\alpha$ | $v$ | $H_{\mathrm{opt}}$ teor. | $H_{\mathrm{opt}}$ emp. | $\mathrm{IMSE}_{\min}$ teor. | $\mathrm{IMSE}_{\min}$ emp. |
+| Wariant | $\alpha$ | $v$ | $H_{\mathrm{opt}}$ teor. | $H_{\mathrm{opt}}$ emp. | $\mathrm{MSE}_{\min}$ teor. | $\mathrm{MSE}_{\min}$ emp. |
 |:---:|:---:|:---:|:---:|:---:|:---:|:---:|
 | W1 | $0{,}01$ | $0{,}5$ | $22$ | $22$ | $0{,}0338$ | $0{,}0340$ |
 | W2 | $0{,}01$ | $10$ | $59$ | $59$ | $0{,}2536$ | $0{,}2565$ |
@@ -111,8 +111,8 @@ src/
   config.py        parametry
   dane.py          trend, zakłócenia trójkątne, pomiary, strumienie losowe
   estymator.py     okno przesuwne (skumulowana suma, wektorowo)
-  teoria.py        bias², Var, IMSE, H_opt
-  imse.py          IMSE metodą Monte Carlo
+  teoria.py        bias², Var, MSE, H_opt
+  imse.py          MSE metodą Monte Carlo
   eksperymenty.py  obliczenia i zapis tabel
   wykresy.py       wykresy na podstawie zapisanych tabel
   run_all.py       uruchomienie całości
