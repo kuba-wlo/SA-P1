@@ -37,9 +37,8 @@ def _przecinek(ax):
         os_.set_major_formatter(FuncFormatter(lambda x, _: liczba(x)))
 
 
-def _osie(ax, tytul, opis_x, opis_y):
-    """Tytuł, opisy osi, siatka i przecinek dziesiętny."""
-    ax.set_title(tytul)
+def _osie(ax, opis_x, opis_y):
+    """Opisy osi, siatka i przecinek dziesiętny (bez tytułu, podpis jest w sprawozdaniu)."""
     ax.set_xlabel(opis_x)
     ax.set_ylabel(opis_y)
     ax.grid(True, linestyle=":", alpha=0.6)
@@ -110,8 +109,7 @@ def e1_generator():
     ax.axvline(a, color="gray", linestyle=":", linewidth=1.2,
                label=rf"$\pm a = \pm\sqrt{{6v}} \approx {{\pm}}{liczba(a, 2, mat=True)}$")
     ax.set_ylim(0, 1.3 / a)
-    _osie(ax, rf"Rozkład zakłóceń trójkątnych, $v$ = {liczba(v)}",
-          r"Wartość zakłócenia $z_k$", "Gęstość prawdopodobieństwa")
+    _osie(ax, r"Wartość zakłócenia $z_k$", "Gęstość prawdopodobieństwa")
     ax.legend(loc="upper right", fontsize=9)
     zapisz(fig, "E1_generator")
 
@@ -134,16 +132,14 @@ def e2_przebiegi():
     ax.plot(d["k"], d[f"est_H{h_max}"], color="tab:purple", linewidth=2,
             label=rf"$\hat{{\theta}}_k$, $H = {h_max}$ (nadfiltracja)")
     ax.set_xlim(d["k"][0], d["k"][-1])
-    _osie(ax, f"Przebiegi czasowe estymat, wariant {p['wariant']}: "
-              rf"$\alpha$ = {liczba(p['alpha'])}, $v$ = {liczba(p['v'])}",
-          "Chwila k", "Wartość parametru")
+    _osie(ax, "Chwila k", "Wartość parametru")
     ax.legend(loc="upper left", fontsize=9)
     zapisz(fig, "E2_przebiegi")
 
 
 # --- E3 ----------------------------------------------------------------------
 
-def _panele_e3(tytul_panelu, z_teoria):
+def _panele_e3(z_teoria):
     d = wczytaj_csv("E3_imse_krzywe")
     tab = wczytaj_csv("E3_imse_tabela")
     H = d["H"]
@@ -168,19 +164,19 @@ def _panele_e3(tytul_panelu, z_teoria):
         ax.set_xlim(0, H[-1] + 1)
         ax.set_ylim(0, 1.45 * gora)
         _adnotacja(ax, h_e, imse_e, tekst, (0.3, 0.55), fontsize=9)
-        _osie(ax, f"{tytul_panelu}: " rf"$\alpha$ = {liczba(tab['alfa'][i])}, "
-                  rf"$v$ = {liczba(tab['v'][i])}",
-              "Horyzont H", "IMSE")
-        ax.legend(loc="upper right", fontsize=8)
+        _osie(ax, "Horyzont H", "IMSE")
+        ax.legend(loc="upper right", fontsize=8, title_fontsize=9,
+                  title=rf"{nazwa}: $\alpha$ = {liczba(tab['alfa'][i])}, "
+                        rf"$v$ = {liczba(tab['v'][i])}")
     return fig
 
 
 def e3_warianty():
-    zapisz(_panele_e3("Porównanie IMSE", z_teoria=True), "E3_imse_warianty")
+    zapisz(_panele_e3(z_teoria=True), "E3_imse_warianty")
 
 
 def e3_imse_empiryczne():
-    zapisz(_panele_e3("IMSE empiryczne", z_teoria=False), "E3_imse_empiryczne")
+    zapisz(_panele_e3(z_teoria=False), "E3_imse_empiryczne")
 
 
 # --- E4 ----------------------------------------------------------------------
@@ -207,9 +203,7 @@ def e4_dekompozycja():
 
     ax.set_xlim(1, config.H_MAX)
     ax.set_ylim(0, 4 * p["IMSE_min_teor"])
-    _osie(ax, f"Dekompozycja IMSE, wariant {p['wariant']}: "
-              rf"$\alpha$ = {liczba(p['alpha'])}, $v$ = {liczba(p['v'])}",
-          "Horyzont H", "Wartość składowej")
+    _osie(ax, "Horyzont H", "Wartość składowej")
     ax.legend(loc="upper right", fontsize=10)
     zapisz(fig, "E4_dekompozycja")
 
@@ -233,9 +227,7 @@ def e5_realizacja():
                + _opis_minimum(h_t, imse_t, "teoria: "), (0.25, 0.55), fontsize=10)
     ax.set_xlim(0, H[-1] + 1)
     ax.set_ylim(0, 1.3 * d["imse_teor"].max())
-    _osie(ax, f"IMSE jednej realizacji, wariant {p['wariant']}: "
-              rf"$\alpha$ = {liczba(p['alpha'])}, $v$ = {liczba(p['v'])}, N = {p['N']}",
-          "Horyzont H", "IMSE")
+    _osie(ax, "Horyzont H", "IMSE")
     ax.legend(loc="upper left", fontsize=9)
     zapisz(fig, "E5_realizacja")
 
@@ -259,9 +251,7 @@ def e5_histogram_hopt():
                label=f"średnia: {liczba(s['srednia'], 2)}, mediana: {liczba(s['mediana'])}")
     ax.set_xticks(np.arange(h.min(), h.max() + 1))
     ax.set_ylim(0, 1.3 * np.bincount(h).max())
-    _osie(ax, rf"Rozkład $H_{{opt}}$ z jednej realizacji, wariant {p['wariant']}, "
-              f"N = {p['N']}",
-          r"Horyzont $H_{opt}$", "Liczba realizacji")
+    _osie(ax, r"Horyzont $H_{opt}$", "Liczba realizacji")
     ax.legend(loc="upper right", fontsize=9)
     zapisz(fig, "E5_histogram_hopt")
 
@@ -286,8 +276,7 @@ def e6_staly_parametr():
                (0.45, 0.35), fontsize=10)
     ax.set_xlim(0, H[-1] + 1)
     ax.set_ylim(0, 1.05 * d["imse_emp"].max())
-    _osie(ax, rf"IMSE dla stałego parametru: $\alpha$ = 0, $v$ = {liczba(p['v'])}",
-          "Horyzont H", "IMSE")
+    _osie(ax, "Horyzont H", "IMSE")
     ax.legend(loc="upper right", fontsize=9)
     zapisz(fig, "E6_staly_parametr")
 
@@ -305,8 +294,7 @@ def e6_wariancja_N():
             label=rf"teoria $v/N$, nachylenie $-1$")
     ax.set_xscale("log")
     ax.set_yscale("log")
-    _osie(ax, rf"Wariancja estymaty dla $H = N$, stały parametr, $v$ = {liczba(p['v'])}",
-          "Liczba próbek N", r"$\mathrm{Var}[\hat{\theta}_{N-1}(N)]$")
+    _osie(ax, "Liczba próbek N", r"$\mathrm{Var}[\hat{\theta}_{N-1}(N)]$")
     ax.legend(loc="upper right", fontsize=9)
     zapisz(fig, "E6_wariancja_N")
 
@@ -341,7 +329,7 @@ def e7_wrazliwosc():
                       f"{liczba(w['nachylenie_teor_calkowite'], 3)}")
         ax.set_xscale("log")
         ax.set_yscale("log")
-        _osie(ax, rf"Wrażliwość $H_{{opt}}$ na {symbol} ({stala})", symbol, r"$H_{opt}$")
+        _osie(ax, f"{symbol} (przy {stala})", r"$H_{opt}$")
         h = np.concatenate([d["H_opt_emp"], d["H_opt_teor"]])
         podzialka = np.array([3, 4, 5, 6, 8, 10, 15, 20, 30, 40, 60, 80, 100])
         ax.set_yticks(podzialka[(podzialka >= 0.9 * h.min()) & (podzialka <= 1.1 * h.max())])
