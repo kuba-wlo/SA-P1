@@ -8,36 +8,24 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt  # noqa: E402
 import numpy as np  # noqa: E402
-from matplotlib.lines import Line2D  # noqa: E402
 from matplotlib.ticker import FuncFormatter, LogLocator, NullFormatter  # noqa: E402
 
 from src import config, dane  # noqa: E402
 
-SZEROKOSC = 6.3  # cale, szerokość kolumny tekstu A4
-KOLOR = {
-    "niebieski": "#2a78d6", "pomaranczowy": "#eb6834", "morski": "#1baf7a",
-    "czarny": "#0b0b0b", "szary": "#52514e", "jasny": "#b8b7b2", "siatka": "#e3e2de",
-}
-
-plt.rcParams.update({
-    "font.size": 9, "axes.labelsize": 9, "legend.fontsize": 8,
-    "xtick.labelsize": 8, "ytick.labelsize": 8,
-    "axes.spines.top": False, "axes.spines.right": False,
-    "axes.grid": True, "grid.color": KOLOR["siatka"], "grid.linewidth": 0.6,
-    "axes.edgecolor": KOLOR["szary"], "axes.axisbelow": True,
-    "lines.linewidth": 1.4, "legend.frameon": False,
-    "savefig.dpi": config.DPI, "mathtext.fontset": "dejavusans",
-})
+KOLOR_EMP = "tab:blue"
+KOLOR_TEOR = "tab:orange"
 
 
 # --- pomocnicze --------------------------------------------------------------
 
-def liczba(x, miejsca=None, mat=True):
+def liczba(x, miejsca=None, mat=False):
     """Liczba z przecinkiem dziesiętnym; `mat` - zapis do trybu matematycznego."""
     if abs(x) < 1e-12:
         x = 0.0
     s = f"{x:.{miejsca}f}" if miejsca is not None else f"{x:g}"
-    return s.replace(".", "{,}" if mat else ",")
+    if mat:
+        return s.replace(".", "{,}")
+    return s.replace(".", ",").replace("-", "−")
 
 
 def _przecinek(ax):
@@ -46,7 +34,34 @@ def _przecinek(ax):
         if os_.get_scale() == "log":
             os_.set_major_locator(LogLocator(subs=subs))
             os_.set_minor_formatter(NullFormatter())
-        os_.set_major_formatter(FuncFormatter(lambda x, _: liczba(x, mat=False)))
+        os_.set_major_formatter(FuncFormatter(lambda x, _: liczba(x)))
+
+
+def _osie(ax, tytul, opis_x, opis_y):
+    """Tytuł, opisy osi, siatka i przecinek dziesiętny."""
+    ax.set_title(tytul)
+    ax.set_xlabel(opis_x)
+    ax.set_ylabel(opis_y)
+    ax.grid(True, linestyle=":", alpha=0.6)
+    _przecinek(ax)
+
+
+def _adnotacja(ax, x, y, tekst, polozenie, **kwargs):
+    """Opis w ramce ze strzałką do punktu (x, y); `polozenie` we współrzędnych osi."""
+    ax.annotate(tekst, xy=(x, y), xytext=polozenie, textcoords="axes fraction",
+                arrowprops={"arrowstyle": "->", "color": "black", "lw": 1},
+                bbox={"boxstyle": "round", "fc": "white", "ec": "gray", "alpha": 0.9},
+                **kwargs)
+
+
+def _minima(ax, h_emp, imse_emp, h_teor, imse_teor):
+    ax.plot(h_emp, imse_emp, "o", color="red", markersize=8, label="minimum empiryczne")
+    ax.plot(h_teor, imse_teor, "x", color="green", markersize=10, markeredgewidth=2,
+            label="minimum teoretyczne")
+
+
+def _opis_minimum(h, imse_min, przedrostek=""):
+    return rf"{przedrostek}$H_{{opt}}$ = {h}, IMSE$_{{min}}$ = {liczba(imse_min, 4)}"
 
 
 def wczytaj_csv(nazwa):
@@ -69,8 +84,9 @@ def wczytaj_podsumowanie():
 
 def zapisz(fig, nazwa):
     config.KATALOG_WYKRESOW.mkdir(parents=True, exist_ok=True)
+    fig.tight_layout()
     # bez daty utworzenia w PDF, żeby kolejne uruchomienia dawały identyczne pliki
-    fig.savefig(config.KATALOG_WYKRESOW / f"{nazwa}.png", bbox_inches="tight")
+    fig.savefig(config.KATALOG_WYKRESOW / f"{nazwa}.png", dpi=config.DPI, bbox_inches="tight")
     fig.savefig(config.KATALOG_WYKRESOW / f"{nazwa}.pdf", bbox_inches="tight",
                 metadata={"CreationDate": None})
     plt.close(fig)
@@ -84,21 +100,19 @@ def e1_generator():
     a = np.sqrt(6 * v)
     krawedzie = np.append(d["lewa_krawedz"], d["prawa_krawedz"][-1])
 
-    fig, ax = plt.subplots(figsize=(SZEROKOSC, 3.2))
-    ax.stairs(d["gestosc_emp"], krawedzie, fill=True, color=KOLOR["niebieski"], alpha=0.35,
-              label=f"histogram ($10^{{{int(np.log10(config.E1_PROBKI))}}}$ próbek)")
-    ax.stairs(d["gestosc_emp"], krawedzie, color=KOLOR["niebieski"], linewidth=0.8)
+    fig, ax = plt.subplots(figsize=(10, 6))
+    ax.stairs(d["gestosc_emp"], krawedzie, fill=True, color=KOLOR_EMP, alpha=0.5,
+              label=f"histogram ({config.E1_PROBKI:,} próbek)".replace(",", " "))
     z = np.linspace(-1.08 * a, 1.08 * a, 801)
-    ax.plot(z, dane.gestosc(z, v), color=KOLOR["czarny"], linestyle="--",
-            label="gęstość teoretyczna")
-    for znak in (-1, 1):
-        ax.axvline(znak * a, color=KOLOR["szary"], linestyle=":", linewidth=1)
-    ax.text(a, 1.02 / a, rf"$a=\sqrt{{6v}}\approx{liczba(a, 2)}$", ha="right", va="bottom")
-    ax.set_xlabel(r"$z_k$")
-    ax.set_ylabel(r"gęstość prawdopodobieństwa")
+    ax.plot(z, dane.gestosc(z, v), "--", color=KOLOR_TEOR, linewidth=1.6,
+            label=r"gęstość teoretyczna $f(z) = (a-|z|)/a^2$")
+    ax.axvline(-a, color="gray", linestyle=":", linewidth=1.2)
+    ax.axvline(a, color="gray", linestyle=":", linewidth=1.2,
+               label=rf"$\pm a = \pm\sqrt{{6v}} \approx {{\pm}}{liczba(a, 2, mat=True)}$")
     ax.set_ylim(0, 1.3 / a)
-    ax.legend(loc="upper left")
-    _przecinek(ax)
+    _osie(ax, rf"Rozkład zakłóceń trójkątnych, $v$ = {liczba(v)}",
+          r"Wartość zakłócenia $z_k$", "Gęstość prawdopodobieństwa")
+    ax.legend(loc="upper right", fontsize=9)
     zapisz(fig, "E1_generator")
 
 
@@ -106,77 +120,67 @@ def e1_generator():
 
 def e2_przebiegi():
     d = wczytaj_csv("E2_przebiegi")
-    H_lista = sorted(int(k[len("est_H"):]) for k in d if k.startswith("est_H"))
-    h_1, h_opt, h_max = H_lista
+    p = wczytaj_podsumowanie()["E2"]
+    h_1, h_opt, h_max = p["H"]
 
-    fig, ax = plt.subplots(figsize=(SZEROKOSC, 3.6))
-    ax.plot(d["k"], d["theta"], linestyle="none", marker="o", markersize=2.2,
-            color=KOLOR["jasny"], label=r"pomiary $\theta_k$")
-    ax.plot(d["k"], d[f"est_H{h_1}"], color=KOLOR["niebieski"], linewidth=0.6, alpha=0.8,
-            label=rf"$\hat{{\theta}}_k$, $H={h_1}$")
-    ax.plot(d["k"], d["theta_gw"], color=KOLOR["czarny"], linewidth=1.4,
-            label=r"$\theta^*_k$")
-    ax.plot(d["k"], d[f"est_H{h_opt}"], color=KOLOR["pomaranczowy"], linestyle="--",
-            linewidth=1.6, label=rf"$\hat{{\theta}}_k$, $H=H_{{opt}}={h_opt}$")
-    ax.plot(d["k"], d[f"est_H{h_max}"], color=KOLOR["morski"], linestyle="-.",
-            linewidth=1.6, label=rf"$\hat{{\theta}}_k$, $H={h_max}$")
-    ax.set_xlabel(r"$k$")
-    ax.set_ylabel(r"$\theta$")
+    fig, ax = plt.subplots(figsize=(12, 6))
+    ax.scatter(d["k"], d["theta"], color="gray", alpha=0.35, s=12, label=r"pomiary $\theta_k$")
+    ax.plot(d["k"], d["theta_gw"], "--", color="black", linewidth=2,
+            label=r"prawdziwy parametr $\theta^*_k$")
+    ax.plot(d["k"], d[f"est_H{h_1}"], color="tab:orange", linewidth=1.2,
+            label=rf"$\hat{{\theta}}_k$, $H = {h_1}$ (niedofiltracja)")
+    ax.plot(d["k"], d[f"est_H{h_opt}"], color="tab:green", linewidth=2.2,
+            label=rf"$\hat{{\theta}}_k$, $H = H_{{opt}} = {h_opt}$ (kompromis)")
+    ax.plot(d["k"], d[f"est_H{h_max}"], color="tab:purple", linewidth=2,
+            label=rf"$\hat{{\theta}}_k$, $H = {h_max}$ (nadfiltracja)")
     ax.set_xlim(d["k"][0], d["k"][-1])
-    ax.legend(loc="upper center", bbox_to_anchor=(0.5, 1.16), ncol=5, handlelength=2.2,
-              columnspacing=1.2)
-    _przecinek(ax)
+    _osie(ax, f"Przebiegi czasowe estymat, wariant {p['wariant']}: "
+              rf"$\alpha$ = {liczba(p['alpha'])}, $v$ = {liczba(p['v'])}",
+          "Chwila k", "Wartość parametru")
+    ax.legend(loc="upper left", fontsize=9)
     zapisz(fig, "E2_przebiegi")
 
 
 # --- E3 ----------------------------------------------------------------------
 
-def e3_warianty():
+def _panele_e3(tytul_panelu, z_teoria):
     d = wczytaj_csv("E3_imse_krzywe")
     tab = wczytaj_csv("E3_imse_tabela")
     H = d["H"]
 
-    fig, osie = plt.subplots(2, 2, figsize=(SZEROKOSC, 5.0), sharex=True)
+    fig, osie = plt.subplots(2, 2, figsize=(12, 8))
     for ax, i in zip(osie.flat, range(len(tab["wariant"]))):
         nazwa = tab["wariant"][i]
         emp, teor = d[f"{nazwa}_imse_emp"], d[f"{nazwa}_imse_teor"]
-        ax.plot(H, emp, color=KOLOR["niebieski"], marker="o", markersize=2.5, markevery=4,
-                linewidth=1.0)
-        ax.plot(H, teor, color=KOLOR["czarny"], linestyle="--", linewidth=1.2)
-        ax.plot(tab["H_opt_emp"][i], tab["IMSE_min_emp"][i], linestyle="none", marker="o",
-                markersize=8, markerfacecolor="none", markeredgecolor=KOLOR["niebieski"],
-                markeredgewidth=1.5)
-        ax.plot(tab["H_opt_teor"][i], tab["IMSE_min_teor"][i], linestyle="none", marker="x",
-                markersize=7, color=KOLOR["czarny"], markeredgewidth=1.5)
-        ax.set_yscale("log")
-        rosnie = emp[-1] > emp[0]
-        ax.text(0.97 if rosnie else 0.5, 0.04 if rosnie else 0.97,
-                rf"{nazwa}: $\alpha={liczba(tab['alfa'][i])}$, $v={liczba(tab['v'][i])}$"
-                "\n" rf"$H_{{opt}}$: teor. {int(tab['H_opt_teor'][i])}, "
-                rf"emp. {int(tab['H_opt_emp'][i])}",
-                transform=ax.transAxes, ha="right" if rosnie else "center",
-                va="bottom" if rosnie else "top",
-                bbox={"facecolor": "white", "edgecolor": "none", "alpha": 0.85, "pad": 1.5})
-        _przecinek(ax)
-    for ax in osie[1]:
-        ax.set_xlabel(r"$H$")
-    for ax in osie[:, 0]:
-        ax.set_ylabel(r"IMSE$(H)$")
-    osie[0, 0].set_xlim(0, H[-1] + 1)
+        h_e, imse_e = int(tab["H_opt_emp"][i]), tab["IMSE_min_emp"][i]
+        h_t, imse_t = int(tab["H_opt_teor"][i]), tab["IMSE_min_teor"][i]
 
-    uchwyty = [
-        Line2D([], [], color=KOLOR["niebieski"], marker="o", markersize=3, linewidth=1.0,
-               label="IMSE empiryczne"),
-        Line2D([], [], color=KOLOR["czarny"], linestyle="--", label="IMSE teoretyczne"),
-        Line2D([], [], linestyle="none", marker="o", markersize=7, markerfacecolor="none",
-               markeredgecolor=KOLOR["niebieski"], markeredgewidth=1.5,
-               label="minimum empiryczne"),
-        Line2D([], [], linestyle="none", marker="x", markersize=6, color=KOLOR["czarny"],
-               markeredgewidth=1.5, label="minimum teoretyczne"),
-    ]
-    fig.legend(handles=uchwyty, loc="lower center", bbox_to_anchor=(0.5, 1.0), ncol=4)
-    fig.tight_layout()
-    zapisz(fig, "E3_imse_warianty")
+        ax.plot(H, emp, color=KOLOR_EMP, linewidth=1.8, label="IMSE empiryczne")
+        if z_teoria:
+            ax.plot(H, teor, "--", color=KOLOR_TEOR, linewidth=1.6, label="IMSE teoretyczne")
+            _minima(ax, h_e, imse_e, h_t, imse_t)
+            tekst = (_opis_minimum(h_e, imse_e, "emp.: ") + "\n"
+                     + _opis_minimum(h_t, imse_t, "teor.: "))
+        else:
+            ax.plot(h_e, imse_e, "o", color="red", markersize=8, label="minimum empiryczne")
+            tekst = _opis_minimum(h_e, imse_e)
+        gora = max(emp.max(), teor.max())
+        ax.set_xlim(0, H[-1] + 1)
+        ax.set_ylim(0, 1.45 * gora)
+        _adnotacja(ax, h_e, imse_e, tekst, (0.3, 0.55), fontsize=9)
+        _osie(ax, f"{tytul_panelu}: " rf"$\alpha$ = {liczba(tab['alfa'][i])}, "
+                  rf"$v$ = {liczba(tab['v'][i])}",
+              "Horyzont H", "IMSE")
+        ax.legend(loc="upper right", fontsize=8)
+    return fig
+
+
+def e3_warianty():
+    zapisz(_panele_e3("Porównanie IMSE", z_teoria=True), "E3_imse_warianty")
+
+
+def e3_imse_empiryczne():
+    zapisz(_panele_e3("IMSE empiryczne", z_teoria=False), "E3_imse_empiryczne")
 
 
 # --- E4 ----------------------------------------------------------------------
@@ -185,43 +189,28 @@ def e4_dekompozycja():
     d = wczytaj_csv("E4_dekompozycja")
     p = wczytaj_podsumowanie()["E4"]
     H = d["H"]
-    co = 3
 
-    fig, ax = plt.subplots(figsize=(SZEROKOSC, 3.8))
-    serie = [
-        ("imse", "IMSE$(H)$", KOLOR["czarny"], "-", "o"),
-        ("bias2", r"$\mathrm{bias}^2(H)$", KOLOR["pomaranczowy"], "--", "s"),
-        ("var", r"$\mathrm{Var}(H)$", KOLOR["morski"], "-.", "^"),
-    ]
-    for klucz, opis, kolor, styl, znacznik in serie:
-        ax.plot(H, d[f"{klucz}_teor"], color=kolor, linestyle=styl,
-                label=f"{opis} teoretycznie")
-        ax.plot(H[::co], d[f"{klucz}_emp"][::co], linestyle="none", marker=znacznik,
-                markersize=4, markerfacecolor="none", markeredgecolor=kolor,
-                label=f"{opis} empirycznie")
+    fig, ax = plt.subplots(figsize=(10, 6))
+    ax.plot(H, d["bias2_teor"], "-.", color="tab:red", linewidth=2,
+            label=r"$\mathrm{bias}^2(H) = \alpha^2 (H-1)^2 / 4$")
+    ax.plot(H, d["var_teor"], "--", color="tab:green", linewidth=2,
+            label=r"$\mathrm{Var}(H) = v / H$")
+    ax.plot(H, d["imse_teor"], color="tab:blue", linewidth=2.5,
+            label=r"$\mathrm{IMSE}(H) = \mathrm{bias}^2(H) + \mathrm{Var}(H)$")
 
-    ax.plot(H, d["bias2_teor"] + d["var_teor"] / config.M, color=KOLOR["szary"],
-            linestyle=":", linewidth=1.2,
-            label=rf"$\mathrm{{bias}}^2(H)+\mathrm{{Var}}(H)/M$, $M={config.M}$")
-
-    h_opt, imse_min = p["H_opt_teor"], p["IMSE_min_teor"]
     h_x = p["H_przeciecia_teor"]
-    ax.axvline(h_opt, color=KOLOR["szary"], linestyle=":", linewidth=1)
-    ax.axvline(h_x, color=KOLOR["szary"], linestyle=":", linewidth=1)
-    ax.plot(h_opt, imse_min, marker="x", markersize=8, markeredgewidth=1.6,
-            color=KOLOR["czarny"], linestyle="none")
-    ax.text(h_opt - 1, 2.2, rf"$H_{{opt}}={h_opt}$" "\n"
-            rf"(emp. {p['H_opt_emp']})", ha="right", va="bottom")
-    ax.text(h_x + 1, 2.2, r"$\mathrm{bias}^2=\mathrm{Var}$" "\n"
-            rf"$H\approx{liczba(h_x, 1)}$", ha="left", va="bottom")
+    y_x = p["v"] / h_x
+    ax.plot(h_x, y_x, "s", color="black", markersize=7,
+            label=rf"$\mathrm{{bias}}^2 = \mathrm{{Var}}$, $H \approx {liczba(h_x, 1, mat=True)}$")
+    _adnotacja(ax, p["H_opt_teor"], p["IMSE_min_teor"],
+               _opis_minimum(p["H_opt_teor"], p["IMSE_min_teor"]), (0.45, 0.55), fontsize=10)
 
-    ax.set_yscale("log")
-    ax.set_ylim(1e-3, 20)
-    ax.set_xlim(0, H[-1] + 1)
-    ax.set_xlabel(r"$H$")
-    ax.set_ylabel("wartość składowej")
-    ax.legend(loc="upper center", bbox_to_anchor=(0.5, 1.3), ncol=3, handlelength=2.2)
-    _przecinek(ax)
+    ax.set_xlim(1, config.H_MAX)
+    ax.set_ylim(0, 4 * p["IMSE_min_teor"])
+    _osie(ax, f"Dekompozycja IMSE, wariant {p['wariant']}: "
+              rf"$\alpha$ = {liczba(p['alpha'])}, $v$ = {liczba(p['v'])}",
+          "Horyzont H", "Wartość składowej")
+    ax.legend(loc="upper right", fontsize=10)
     zapisz(fig, "E4_dekompozycja")
 
 
@@ -231,26 +220,23 @@ def e5_realizacja():
     d = wczytaj_csv("E5_realizacja")
     p = wczytaj_podsumowanie()["E5"]
     H = d["H"]
+    h_e, imse_e = p["H_opt_jednej_realizacji"], p["IMSE_min_jednej_realizacji"]
+    h_t, imse_t = p["H_opt_teor"], p["IMSE_min_teor"]
 
-    fig, ax = plt.subplots(figsize=(SZEROKOSC, 3.4))
-    ax.plot(H, d["imse_jednej_realizacji"], linestyle="none", marker="o", markersize=3,
-            markerfacecolor="none", markeredgecolor=KOLOR["niebieski"],
-            label="IMSE$(H)$ jednej realizacji")
-    ax.plot(H, d["imse_teor"], color=KOLOR["czarny"], linestyle="--",
-            label="IMSE$(H)$ teoretyczne")
-    ax.plot(p["H_opt_jednej_realizacji"], p["IMSE_min_jednej_realizacji"], linestyle="none",
-            marker="o", markersize=9, markerfacecolor="none",
-            markeredgecolor=KOLOR["pomaranczowy"], markeredgewidth=1.6,
-            label=rf"minimum jednej realizacji, $H={p['H_opt_jednej_realizacji']}$")
-    ax.plot(p["H_opt_teor"], p["IMSE_min_teor"], linestyle="none", marker="x", markersize=8,
-            color=KOLOR["czarny"], markeredgewidth=1.6,
-            label=rf"minimum teoretyczne, $H_{{opt}}={p['H_opt_teor']}$")
-    ax.set_yscale("log")
+    fig, ax = plt.subplots(figsize=(10, 6))
+    ax.plot(H, d["imse_jednej_realizacji"], "o", color=KOLOR_EMP, markersize=3.5,
+            label="IMSE jednej realizacji")
+    ax.plot(H, d["imse_teor"], "--", color=KOLOR_TEOR, linewidth=1.6, label="IMSE teoretyczne")
+    _minima(ax, h_e, imse_e, h_t, imse_t)
+    _adnotacja(ax, h_e, imse_e,
+               _opis_minimum(h_e, imse_e, "jedna realizacja: ") + "\n"
+               + _opis_minimum(h_t, imse_t, "teoria: "), (0.25, 0.55), fontsize=10)
     ax.set_xlim(0, H[-1] + 1)
-    ax.set_xlabel(r"$H$")
-    ax.set_ylabel(r"IMSE$(H)$")
-    ax.legend(loc="lower right")
-    _przecinek(ax)
+    ax.set_ylim(0, 1.3 * d["imse_teor"].max())
+    _osie(ax, f"IMSE jednej realizacji, wariant {p['wariant']}: "
+              rf"$\alpha$ = {liczba(p['alpha'])}, $v$ = {liczba(p['v'])}, N = {p['N']}",
+          "Horyzont H", "IMSE")
+    ax.legend(loc="upper left", fontsize=9)
     zapisz(fig, "E5_realizacja")
 
 
@@ -261,22 +247,22 @@ def e5_histogram_hopt():
     h = d["H_opt"].astype(int)
     krawedzie = np.arange(h.min() - 0.5, h.max() + 1.5)
 
-    fig, ax = plt.subplots(figsize=(SZEROKOSC, 3.2))
-    ax.hist(h, bins=krawedzie, color=KOLOR["niebieski"], alpha=0.45,
-            edgecolor=KOLOR["niebieski"], linewidth=0.8,
-            label=rf"$H_{{opt}}$ z {p['realizacje']} realizacji ($N={p['N']}$)")
-    ax.axvline(p["H_opt_teor"], color=KOLOR["czarny"], linestyle="--",
+    fig, ax = plt.subplots(figsize=(10, 6))
+    ax.axvspan(s["percentyl_5"], s["percentyl_95"], color="gray", alpha=0.15,
+               label=f"percentyle 5–95: [{liczba(s['percentyl_5'])}; "
+                     f"{liczba(s['percentyl_95'])}]")
+    ax.hist(h, bins=krawedzie, color=KOLOR_EMP, alpha=0.7, edgecolor="black",
+            label=rf"$H_{{opt}}$ z {p['realizacje']} realizacji")
+    ax.axvline(p["H_opt_teor"], color="green", linestyle="--", linewidth=2,
                label=rf"$H_{{opt}}$ teoretyczne: {p['H_opt_teor']}")
-    ax.axvline(s["srednia"], color=KOLOR["pomaranczowy"], linestyle=":", linewidth=1.8,
-               label=f"średnia: {liczba(s['srednia'], 2, mat=False)}")
-    ax.axvspan(s["percentyl_5"], s["percentyl_95"], color=KOLOR["jasny"], alpha=0.25,
-               label=f"percentyle 5–95: [{liczba(s['percentyl_5'], mat=False)}; "
-                     f"{liczba(s['percentyl_95'], mat=False)}]")
-    ax.set_xlabel(r"$H_{opt}$ wyznaczone z jednej realizacji")
-    ax.set_ylabel("liczba realizacji")
+    ax.axvline(s["srednia"], color="red", linestyle=":", linewidth=2,
+               label=f"średnia: {liczba(s['srednia'], 2)}, mediana: {liczba(s['mediana'])}")
     ax.set_xticks(np.arange(h.min(), h.max() + 1))
-    ax.legend(loc="upper right")
-    _przecinek(ax)
+    ax.set_ylim(0, 1.3 * np.bincount(h).max())
+    _osie(ax, rf"Rozkład $H_{{opt}}$ z jednej realizacji, wariant {p['wariant']}, "
+              f"N = {p['N']}",
+          r"Horyzont $H_{opt}$", "Liczba realizacji")
+    ax.legend(loc="upper right", fontsize=9)
     zapisz(fig, "E5_histogram_hopt")
 
 
@@ -286,26 +272,23 @@ def e6_staly_parametr():
     d = wczytaj_csv("E6_staly_parametr")
     p = wczytaj_podsumowanie()["E6"]
     H = d["H"]
+    h_e = p["H_opt_emp"]
+    imse_e = d["imse_emp"][H == h_e][0]
 
-    fig, ax = plt.subplots(figsize=(SZEROKOSC, 3.4))
-    ax.plot(H, d["imse_emp"], linestyle="none", marker="o", markersize=3.5,
-            markerfacecolor="none", markeredgecolor=KOLOR["niebieski"],
-            label="IMSE$(H)$ empiryczne")
-    ax.plot(H, d["imse_teor"], color=KOLOR["czarny"], linestyle="--",
-            label=rf"$v/H$, $v={liczba(p['v'])}$")
-    ax.plot(p["H_opt_emp"], d["imse_emp"][H == p["H_opt_emp"]][0], linestyle="none",
-            marker="o", markersize=9, markerfacecolor="none",
-            markeredgecolor=KOLOR["pomaranczowy"], markeredgewidth=1.6,
-            label=rf"minimum empiryczne, $H={p['H_opt_emp']}$")
-    ax.plot(p["H_opt_teor"], d["imse_teor"][-1], linestyle="none", marker="x", markersize=8,
-            color=KOLOR["czarny"], markeredgewidth=1.6,
-            label=rf"$H_{{opt}}=H_{{max}}={p['H_opt_teor']}$")
-    ax.set_xscale("log")
-    ax.set_yscale("log")
-    ax.set_xlabel(r"$H$")
-    ax.set_ylabel(r"IMSE$(H)$")
-    ax.legend(loc="upper right")
-    _przecinek(ax)
+    fig, ax = plt.subplots(figsize=(10, 6))
+    ax.plot(H, d["imse_emp"], color=KOLOR_EMP, linewidth=1.8, label="IMSE empiryczne")
+    ax.plot(H, d["imse_teor"], "--", color=KOLOR_TEOR, linewidth=1.6,
+            label=r"IMSE teoretyczne $v/H$")
+    _minima(ax, h_e, imse_e, p["H_opt_teor"], d["imse_teor"][-1])
+    _adnotacja(ax, h_e, imse_e,
+               _opis_minimum(h_e, imse_e, "emp.: ") + "\n"
+               + _opis_minimum(p["H_opt_teor"], d["imse_teor"][-1], r"teor. ($H_{max}$): "),
+               (0.45, 0.35), fontsize=10)
+    ax.set_xlim(0, H[-1] + 1)
+    ax.set_ylim(0, 1.05 * d["imse_emp"].max())
+    _osie(ax, rf"IMSE dla stałego parametru: $\alpha$ = 0, $v$ = {liczba(p['v'])}",
+          "Horyzont H", "IMSE")
+    ax.legend(loc="upper right", fontsize=9)
     zapisz(fig, "E6_staly_parametr")
 
 
@@ -314,19 +297,17 @@ def e6_wariancja_N():
     p = wczytaj_podsumowanie()["E6"]
     N_gesto = np.geomspace(d["N"][0] * 0.8, d["N"][-1] * 1.25, 100)
 
-    fig, ax = plt.subplots(figsize=(SZEROKOSC, 3.4))
-    ax.plot(N_gesto, p["v"] / N_gesto, color=KOLOR["czarny"], linestyle="--",
-            label=rf"$v/N$, $v={liczba(p['v'])}$")
-    ax.plot(d["N"], d["var_emp"], linestyle="none", marker="o", markersize=6,
-            markerfacecolor="none", markeredgecolor=KOLOR["niebieski"], markeredgewidth=1.4,
-            label=rf"wariancja empiryczna ($M={p['M_b']}$), "
-                  rf"nachylenie ${liczba(p['nachylenie_log_var_od_log_N'], 3)}$")
+    fig, ax = plt.subplots(figsize=(10, 6))
+    ax.plot(d["N"], d["var_emp"], "o", color=KOLOR_EMP, markersize=8,
+            label=rf"wariancja empiryczna, $M$ = {p['M_b']}, "
+                  rf"nachylenie {liczba(p['nachylenie_log_var_od_log_N'], 3)}")
+    ax.plot(N_gesto, p["v"] / N_gesto, "--", color=KOLOR_TEOR, linewidth=1.6,
+            label=rf"teoria $v/N$, nachylenie $-1$")
     ax.set_xscale("log")
     ax.set_yscale("log")
-    ax.set_xlabel(r"$N$ ($H=N$)")
-    ax.set_ylabel(r"$\mathrm{Var}[\hat{\theta}_{N-1}(N)]$")
-    ax.legend(loc="upper right")
-    _przecinek(ax)
+    _osie(ax, rf"Wariancja estymaty dla $H = N$, stały parametr, $v$ = {liczba(p['v'])}",
+          "Liczba próbek N", r"$\mathrm{Var}[\hat{\theta}_{N-1}(N)]$")
+    ax.legend(loc="upper right", fontsize=9)
     zapisz(fig, "E6_wariancja_N")
 
 
@@ -334,39 +315,35 @@ def e6_wariancja_N():
 
 def e7_wrazliwosc():
     p = wczytaj_podsumowanie()["E7"]
-    fig, osie = plt.subplots(1, 2, figsize=(SZEROKOSC, 3.3))
+    fig, osie = plt.subplots(1, 2, figsize=(12, 5.5))
     opisy = {
-        "alfa": (r"$\alpha$", rf"$v={liczba(2.0)}$", "-2/3"),
-        "v": (r"$v$", rf"$\alpha={liczba(0.05)}$", "1/3"),
+        "alfa": (r"$\alpha$", rf"$v$ = {liczba(config.E7_V_PRZY_ALPHA)}", "-2/3", "upper right"),
+        "v": (r"$v$", rf"$\alpha$ = {liczba(config.E7_ALPHA_PRZY_V)}", "1/3", "upper left"),
     }
-    for ax, (seria, (os_x, stala, wykl)) in zip(osie, opisy.items()):
+    for ax, (seria, (symbol, stala, wykl, legenda)) in zip(osie, opisy.items()):
         d = wczytaj_csv(f"E7_wrazliwosc_{seria}")
         w = p[seria]
         x = d[seria]
         x_gesto = np.geomspace(x.min() * 0.85, x.max() * 1.15, 100)
         alpha = d["alfa"][0] if seria == "v" else x_gesto
         v = d["v"][0] if seria == "alfa" else x_gesto
-        ax.plot(x_gesto, (2 * v / alpha**2) ** (1 / 3), color=KOLOR["szary"], linestyle=":",
-                linewidth=1.3, label=rf"$(2v/\alpha^2)^{{1/3}}$, nachyl. ${wykl}$")
         wsp = np.polyfit(np.log(x), np.log(d["H_opt_emp"]), 1)
-        ax.plot(x_gesto, np.exp(np.polyval(wsp, np.log(x_gesto))), color=KOLOR["niebieski"],
-                linewidth=1.1,
-                label=rf"MNK (emp.), nachyl. ${liczba(w['nachylenie_emp'], 3)}$")
-        ax.plot(x, d["H_opt_emp"], linestyle="none", marker="o", markersize=6,
-                markerfacecolor="none", markeredgecolor=KOLOR["niebieski"],
-                markeredgewidth=1.4, label=r"$H_{opt}$ empiryczne")
-        ax.plot(x, d["H_opt_teor"], linestyle="none", marker="x", markersize=6,
-                color=KOLOR["czarny"], markeredgewidth=1.3,
-                label=rf"$H_{{opt}}$ teor. (całk.), nachyl. "
-                      rf"${liczba(w['nachylenie_teor_calkowite'], 3)}$")
+
+        ax.plot(x_gesto, (2 * v / alpha**2) ** (1 / 3), "--", color=KOLOR_TEOR, linewidth=1.6,
+                label=rf"$(2v/\alpha^2)^{{1/3}}$, nachylenie ${wykl}$")
+        ax.plot(x_gesto, np.exp(np.polyval(wsp, np.log(x_gesto))), color=KOLOR_EMP,
+                linewidth=1.4,
+                label=f"MNK (emp.), nachylenie {liczba(w['nachylenie_emp'], 3)}")
+        ax.plot(x, d["H_opt_emp"], "o", color="red", markersize=8,
+                label=r"$H_{opt}$ empiryczne")
+        ax.plot(x, d["H_opt_teor"], "x", color="green", markersize=10, markeredgewidth=2,
+                label=rf"$H_{{opt}}$ teoretyczne, nachylenie "
+                      f"{liczba(w['nachylenie_teor_calkowite'], 3)}")
         ax.set_xscale("log")
         ax.set_yscale("log")
-        ax.set_xlabel(f"{os_x} (przy {stala})")
-        ax.legend(loc="upper center", bbox_to_anchor=(0.5, -0.2), ncol=1)
-        _przecinek(ax)
+        _osie(ax, rf"Wrażliwość $H_{{opt}}$ na {symbol} ({stala})", symbol, r"$H_{opt}$")
         h = np.concatenate([d["H_opt_emp"], d["H_opt_teor"]])
         podzialka = np.array([3, 4, 5, 6, 8, 10, 15, 20, 30, 40, 60, 80, 100])
         ax.set_yticks(podzialka[(podzialka >= 0.9 * h.min()) & (podzialka <= 1.1 * h.max())])
-    osie[0].set_ylabel(r"$H_{opt}$")
-    fig.tight_layout()
+        ax.legend(loc=legenda, fontsize=8)
     zapisz(fig, "E7_wrazliwosc")

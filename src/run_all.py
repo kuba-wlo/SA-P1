@@ -7,7 +7,7 @@ from src import config, eksperymenty, wykresy
 KROKI = [
     ("E1", eksperymenty.e1_generator, [wykresy.e1_generator]),
     ("E2", eksperymenty.e2_przebiegi, [wykresy.e2_przebiegi]),
-    ("E3", eksperymenty.e3_warianty, [wykresy.e3_warianty]),
+    ("E3", eksperymenty.e3_warianty, [wykresy.e3_warianty, wykresy.e3_imse_empiryczne]),
     ("E4", eksperymenty.e4_dekompozycja, [wykresy.e4_dekompozycja]),
     ("E5", eksperymenty.e5_realizacja, [wykresy.e5_realizacja, wykresy.e5_histogram_hopt]),
     ("E6", eksperymenty.e6_staly_parametr, [wykresy.e6_staly_parametr, wykresy.e6_wariancja_N]),
