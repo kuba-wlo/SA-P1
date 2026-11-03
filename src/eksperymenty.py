@@ -93,11 +93,11 @@ def e2_przebiegi():
     wycinek = slice(p, p + config.E2_DLUGOSC_WYCINKA)
     kolumny = {"k": np.arange(config.N)[wycinek], "theta": theta[wycinek],
                "theta_gw": theta_gw[wycinek]}
-    for H in (1, h_opt, config.H_MAX):
+    for H in (2, h_opt, config.H_MAX):
         kolumny[f"est_H{H}"] = estymator.okno_przesuwne(theta, H)[wycinek]
     zapisz_csv("E2_przebiegi", kolumny)
 
-    wynik = {"wariant": nazwa, "alpha": alpha, "v": v, "H": [1, h_opt, config.H_MAX],
+    wynik = {"wariant": nazwa, "alpha": alpha, "v": v, "H": [2, h_opt, config.H_MAX],
              "k_od": p, "k_do": p + config.E2_DLUGOSC_WYCINKA - 1}
     zapisz_podsumowanie("E2", wynik)
     return wynik
